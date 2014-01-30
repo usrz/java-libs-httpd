@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0">
+
+  <info organisation="org.usrz.libs" module="httpd" revision="0.0.0"/>
+
+  <configurations>
+    <conf name="default" visibility="public"/>
+    <conf name="test" visibility="private" extends="default"/>
+  </configurations>
+
+  <publications>
+      <artifact name="httpd" type="bin" ext="jar" conf="default"/>
+      <artifact name="httpd" type="src" ext="zip" conf="default"/>
+      <artifact name="httpd" type="doc" ext="zip" conf="default"/>
+  </publications>
+
+  <dependencies>
+    <dependency org="org.testng" name="testng" rev="latest.release" conf="test-&gt;default"/>
+  </dependencies>
+
+</ivy-module>
