@@ -15,6 +15,8 @@
   </publications>
 
   <dependencies>
+    <dependency org="org.usrz.libs" name="logging" rev="latest.release" conf="default"/>
+    <dependency org="org.glassfish.grizzly" name="http-server" rev="latest.release" conf="default"/>
     <dependency org="org.testng" name="testng" rev="latest.release" conf="test-&gt;default"/>
   </dependencies>
 
