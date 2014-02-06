@@ -21,73 +21,121 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A simple builder for {@link Configurations} instances.
+ *
+ * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
+ */
 public class ConfigurationsBuilder {
 
     private final Map<String, Object> configurations;
 
+    /**
+     * Create a new {@link ConfigurationsBuilder} instance.
+     */
     public ConfigurationsBuilder() {
         configurations = new HashMap<>();
     }
 
+    /**
+     * Build a {@link Configurations} instance from the mappings previously
+     * <em>put</em> in this {@linkplain ConfigurationsBuilder builder}.
+     */
     public Configurations build() {
         return new Configurations(configurations);
     }
 
+    /**
+     * Associate the given key with the specified {@link String} value.
+     */
     public ConfigurationsBuilder put(String key, String value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>boolean</b> value.
+     */
     public ConfigurationsBuilder put(String key, boolean value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>byte</b> value.
+     */
     public ConfigurationsBuilder put(String key, byte value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>double</b> value.
+     */
     public ConfigurationsBuilder put(String key, double value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>float</b> value.
+     */
     public ConfigurationsBuilder put(String key, float value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>int</b> value.
+     */
     public ConfigurationsBuilder put(String key, int value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>long</b> value.
+     */
     public ConfigurationsBuilder put(String key, long value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified <b>short</b> value.
+     */
     public ConfigurationsBuilder put(String key, short value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified {@link File} value.
+     */
     public ConfigurationsBuilder put(String key, File value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified {@link URI} value.
+     */
     public ConfigurationsBuilder put(String key, URI value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified {@link URL} value.
+     */
     public ConfigurationsBuilder put(String key, URL value) {
         configurations.put(key, value);
         return this;
     }
 
+    /**
+     * Associate the given key with the specified {@link Object} value.
+     */
     public ConfigurationsBuilder put(String key, Object value) {
         configurations.put(key, value);
         return this;

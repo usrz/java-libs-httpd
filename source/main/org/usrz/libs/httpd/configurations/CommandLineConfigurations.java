@@ -21,11 +21,49 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A {@link Configurations} instance parsing <em>key-value</em> mappings from
+ * command-line like structures.
+ *
+ * <p>Any parameter like <code>-Dkey=value</code> will be interpreted directly
+ * as a mapping, while any other parameter specified will be interpreted as
+ * an <em>external {@linkplain File file} resource</em> relative to the current
+ * directory.</p>
+ *
+ * <p>In other words, given a command-line like the following:</p>
+ *
+ * <pre>
+ * -Dkey1=value1
+ * -Dkey2=value2
+ * myconfigurations.properties
+ * -Dkey1=differentValue
+ * </pre>
+ *
+ * <p>This class will operate as follows:</p>
+ *
+ * <ol>
+ *   <li>It will map the value <code>value1</code> to the key <code>key1</code>
+ *   <li>It will map the value <code>value2</code> to the key <code>key2</code>
+ *   <li>It will read the file <em>myconfigurations.properties</em> relative
+ *       to the current directory, potentially overriding <b>any</b> previously
+ *       defined mapping</li>
+ *   <li>It will <b>override</b> any previously specified value mapped to the
+ *       key <code>key1</code> with the value <code>differentValue</code>
+ * </ol>
+ *
+ * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
+ */
 public class CommandLineConfigurations extends Configurations {
 
+    /**
+     * Create a new {@link CommandLineConfigurations} instance parsing the
+     * specified arguments.
+     */
     public CommandLineConfigurations(String... arguments) {
         super(parse(arguments));
     }
+
+    /* ====================================================================== */
 
     private static Map<String, String> parse(String... arguments) {
 

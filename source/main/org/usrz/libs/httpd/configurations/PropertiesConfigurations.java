@@ -31,31 +31,64 @@ import java.util.Properties;
 
 import org.usrz.libs.logging.Log;
 
+/**
+ * A {@link Configurations} implementation reading <em>key-value</em> mappings
+ * from <em>Java {@linkplain Properties properties} files</em>
+ *
+ * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
+ */
 public class PropertiesConfigurations extends Configurations {
 
+    /* Our charset, UTF8, always */
     private static final Charset UTF8 = Charset.forName("UTF8");
+    /* Logging for knowing what's going on */
     private static final Log log = new Log();
 
     /* ====================================================================== */
     /* CONSTRUCTION                                                           */
     /* ====================================================================== */
 
+    /**
+     * Create a new {@link PropertiesConfigurations} instance reading a
+     * <em>Java {@linkplain Properties properties} file</em> from the
+     * specified {@link Reader}.
+     */
     public PropertiesConfigurations(Reader reader) {
         super(load(reader));
     }
 
+    /**
+     * Create a new {@link PropertiesConfigurations} instance reading a
+     * <em>Java {@linkplain Properties properties} file</em> from the
+     * specified {@link InputStream}.
+     */
     public PropertiesConfigurations(InputStream input) {
         super(load(input));
     }
 
+    /**
+     * Create a new {@link PropertiesConfigurations} instance reading a
+     * <em>Java {@linkplain Properties properties} file</em> from the
+     * specified {@link URI}.
+     */
     public PropertiesConfigurations(URI uri) {
         super(load(uri));
     }
 
+    /**
+     * Create a new {@link PropertiesConfigurations} instance reading a
+     * <em>Java {@linkplain Properties properties} file</em> from the
+     * specified {@link URL}.
+     */
     public PropertiesConfigurations(URL url) {
         super(load(url));
     }
 
+    /**
+     * Create a new {@link PropertiesConfigurations} instance reading a
+     * <em>Java {@linkplain Properties properties} file</em> from the
+     * specified {@link File}.
+     */
     public PropertiesConfigurations(File file) {
         super(load(file));
     }

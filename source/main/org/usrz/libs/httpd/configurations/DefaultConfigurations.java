@@ -19,18 +19,53 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import org.usrz.libs.logging.Log;
 
+/**
+ * A {@link Configurations} implementation reading <em>key-value</em> mappings
+ * from <em>Java {@linkplain Properties properties} files</em> stored as
+ * alongside {@link Class#getResource(String) classes}, their super-classes
+ * and implemented interfaces.
+ *
+ * <p>This class, when instantiated, will traverse the class hierarchy and
+ * load (in order) a resource called <code>defaults.properties</code> stored
+ * alongside the various classes it finds.</p>
+ *
+ * <p>The order in which classes will be traversed is as follows:</p>
+ *
+ * <ol>
+ *   <li>The class {@linkplain DefaultConfigurations#DefaultConfigurations(Class)
+ *       specified} at construction.</li>
+ *   <li>All its <em>super-classes</em> (recursively).</li>
+ *   <li>All The interfaces implemented by the specified class and all its
+ *       super-classes</li>
+ * </ol>
+ *
+ * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
+ */
 public class DefaultConfigurations extends Configurations {
 
+    /**
+     * The resource name (<code>defaults.properties</code>) to use when looking
+     * for default properties files.
+     */
     public static final String DEFAULTS_PROPERTIES = "defaults.properties";
     private static final Log log = new Log();
 
+    /**
+     * Create a new {@link ResourceConfigurations} instance parsing the
+     * defaults files associated with the <em>caller</em> {@link Class}.
+     */
     public DefaultConfigurations() {
         super(load());
     }
 
+    /**
+     * Create a new {@link ResourceConfigurations} instance parsing the
+     * defaults files associated with the <em>specified</em> {@link Class}.
+     */
     public DefaultConfigurations(Class<?> clazz) {
         super(load(clazz));
     }

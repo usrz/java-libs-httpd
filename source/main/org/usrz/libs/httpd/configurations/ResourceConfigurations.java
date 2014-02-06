@@ -16,20 +16,38 @@
 package org.usrz.libs.httpd.configurations;
 
 import java.io.InputStream;
+import java.util.Properties;
 
 import org.usrz.libs.logging.Log;
 
+/**
+ * A {@link Configurations} implementation reading <em>key-value</em> mappings
+ * from <em>Java {@linkplain Properties properties} files</em> stored as
+ * <em>resources</em> alongside {@linkplain Class#getResource(String) classes}.
+ *
+ * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
+ */
 public class ResourceConfigurations extends PropertiesConfigurations {
 
     private static final Log log = new Log();
 
+    /**
+     * Create a new {@link ResourceConfigurations} instance parsing the
+     * specified resource associated with the <em>caller</em> {@link Class}.
+     */
     public ResourceConfigurations(String resource) {
         super(load(resource));
     }
 
+    /**
+     * Create a new {@link ResourceConfigurations} instance parsing the
+     * specified resource associated with the specified {@link Class}.
+     */
     public ResourceConfigurations(Class<?> clazz, String resource) {
         super(load(clazz, resource));
     }
+
+    /* ====================================================================== */
 
     private static InputStream load(String resource) {
         final String className = new Throwable().getStackTrace()[2].getClassName();
