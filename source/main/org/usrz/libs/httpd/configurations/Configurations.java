@@ -387,7 +387,7 @@ public class Configurations implements Map<String, String>, Cloneable {
      * key2 = yet another different value 2
      * </pre>
      */
-    public final Map<String, Configurations> explicitGrouping(String prefix, String... groups) {
+    public final Map<String, Configurations> group(String prefix, String... groups) {
 
         /* Check and normalize the prefix */
         if (prefix == null) throw new NullPointerException("Null key");
@@ -406,12 +406,16 @@ public class Configurations implements Map<String, String>, Cloneable {
 
     /**
      * Group mappings by prefix, and return a {@link Map} of
-     * <nobr><em>prefix -&gt; {@link Configurations}</em></nobr> only
-     * for the groups specified in the given key.
+     * <nobr><em>prefix -&gt; {@link Configurations}</em></nobr>, optionally
+     * containing the group names specified as a value for the prefix.
      *
-     * <p>This method is similar to {@link #explicitGrouping(String, String...)}
+     * <p>When the <em>explicit</em> flag is <b>false</b> this method will
+     * behave exactly like {@link #group(String)}.</p>
+     *
+     * <p>On the other hand, when the <em>explicit</em> flag is set, this
+     * method will behave similarly to {@link #group(String, String...)}
      * but the list of <em>groups</em> to return is derived from the value
-     * of the specified <em>key</em>. In other words, given mappings as:</p>
+     * of the specified <em>prefix</em>. In other words, given mappings as:</p>
      *
      * <pre>
      * prefix = group1,group3
@@ -423,7 +427,7 @@ public class Configurations implements Map<String, String>, Cloneable {
      * prefix.group3.key2 = yet another different value 2
      * </pre>
      *
-     * <p>when the key is "<code>prefix</code>", its value
+     * <p>when the specified prefix is "<code>prefix</code>", its value
      * (<code>group1,group3</code>) will be parsed and tokenized using
      * either <em>whitespace</em> or <em>commas</em>, and this method will
      * return two mappings, the first keyed by "<code>group1</code>"</p>
@@ -440,10 +444,11 @@ public class Configurations implements Map<String, String>, Cloneable {
      * key2 = yet another different value 2
      * </pre>
      */
-    public final Map<String, Configurations> explicitGrouping(String key) {
+    public final Map<String, Configurations> group(String prefix, boolean explicit) {
+        if (!explicit) return group(prefix);
 
         /* Get the value for our key */
-        final String value = this.get(key);
+        final String value = this.get(prefix);
         if (value == null) return Collections.emptyMap();
 
         /* Tokenize the key to get the group names */
@@ -455,7 +460,7 @@ public class Configurations implements Map<String, String>, Cloneable {
         }
 
         /* All done, return our map, made unmodifiable */
-        return explicitGrouping(key, groups.toArray(new String[groups.size()]));
+        return group(prefix, groups.toArray(new String[groups.size()]));
     }
 
     /* ====================================================================== */

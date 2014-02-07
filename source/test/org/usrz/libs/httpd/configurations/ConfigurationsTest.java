@@ -197,7 +197,7 @@ public class ConfigurationsTest extends AbstractTest {
     public void testGroup() {
         final Configurations configurations = new ResourceConfigurations("test.properties");
 
-        final Map<String, Configurations> explicit = configurations.group("group");
+        final Map<String, Configurations> explicit = configurations.group("group", false);
 
         assertEquals(explicit.size(), 6);
         assertNotNull(explicit.get("foo"));
@@ -243,7 +243,7 @@ public class ConfigurationsTest extends AbstractTest {
     public void testExplicitGroup() {
         final Configurations configurations = new ResourceConfigurations("test.properties");
 
-        final Map<String, Configurations> explicit = configurations.explicitGrouping("explicit");
+        final Map<String, Configurations> explicit = configurations.group("explicit", true);
 
         assertEquals(explicit.size(), 2);
         assertNotNull(explicit.get("foo"));
