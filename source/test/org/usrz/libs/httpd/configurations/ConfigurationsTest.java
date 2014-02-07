@@ -301,4 +301,21 @@ public class ConfigurationsTest extends AbstractTest {
         assertEquals(cloned.hashCode(), original.hashCode());
         assertEquals(original.hashCode(), cloned.hashCode());
     }
+
+    @Test(expectedExceptions = IllegalArgumentException.class,
+          expectedExceptionsMessageRegExp = "^Invalid key name \\\"a~wrong~key\\\".*")
+    public void testWrongKey()
+    throws Exception {
+        try {
+            new ResourceConfigurations("wrongkey.properties");
+            fail("Exception not thrown");
+        } catch (IllegalArgumentException exception) {
+            final ConfigurationsException wrapper = (ConfigurationsException) exception.getCause();
+            assertEquals(exception.getMessage(), wrapper.getMessage());
+            assertEquals(wrapper.getLocation(), this.getClass().getResource("wrongkey.properties").toString());
+            assertEquals(wrapper.getLine(), -1);
+            assertEquals(wrapper.getColumn(), -1);
+            throw exception;
+        }
+    }
 }

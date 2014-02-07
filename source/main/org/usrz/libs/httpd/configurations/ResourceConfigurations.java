@@ -15,10 +15,8 @@
  * ========================================================================== */
 package org.usrz.libs.httpd.configurations;
 
-import java.io.InputStream;
+import java.net.URL;
 import java.util.Properties;
-
-import org.usrz.libs.logging.Log;
 
 /**
  * A {@link Configurations} implementation reading <em>key-value</em> mappings
@@ -27,16 +25,14 @@ import org.usrz.libs.logging.Log;
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
-public class ResourceConfigurations extends PropertiesConfigurations {
-
-    private static final Log log = new Log();
+public class ResourceConfigurations extends Configurations {
 
     /**
      * Create a new {@link ResourceConfigurations} instance parsing the
      * specified resource associated with the <em>caller</em> {@link Class}.
      */
     public ResourceConfigurations(String resource) {
-        super(load(resource));
+        super(load(resource), false);
     }
 
     /**
@@ -44,12 +40,12 @@ public class ResourceConfigurations extends PropertiesConfigurations {
      * specified resource associated with the specified {@link Class}.
      */
     public ResourceConfigurations(Class<?> clazz, String resource) {
-        super(load(clazz, resource));
+        super(load(clazz, resource), false);
     }
 
     /* ====================================================================== */
 
-    private static InputStream load(String resource) {
+    private static URLConfigurations load(String resource) {
         final String className = new Throwable().getStackTrace()[2].getClassName();
         try {
             return load(Class.forName(className), resource);
@@ -58,11 +54,13 @@ public class ResourceConfigurations extends PropertiesConfigurations {
         }
     }
 
-    private static InputStream load(Class<?> clazz, String resource) {
+    private static URLConfigurations load(Class<?> clazz, String resource) {
         if (clazz == null) throw new NullPointerException("Null class");
-        log.debug("Loading configurations from resource \"%s\" of class %s", resource, clazz);
-        final InputStream input = clazz.getResourceAsStream(resource);
-        if (input == null) throw new IllegalStateException("Resource \"" + resource + "\" not found for class " + clazz.getName());
-        return input;
+        if (resource == null) throw new NullPointerException("Null resource");
+
+        final URL url = clazz.getResource(resource);
+        if (url != null) return new URLConfigurations(url);
+
+        throw new IllegalStateException("Resource \"" + resource + "\" not found for class " + clazz.getName());
     }
 }

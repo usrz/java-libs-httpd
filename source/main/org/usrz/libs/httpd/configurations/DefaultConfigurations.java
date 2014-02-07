@@ -17,7 +17,6 @@ package org.usrz.libs.httpd.configurations;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -52,6 +51,14 @@ public class DefaultConfigurations extends Configurations {
      * for default properties files.
      */
     public static final String DEFAULTS_PROPERTIES = "defaults.properties";
+
+    /**
+     * The resource name (<code>defaults.properties</code>) to use when looking
+     * for default JSON files.
+     */
+    public static final String DEFAULTS_JSON = "defaults.json";
+
+    /* Our log */
     private static final Log log = new Log();
 
     /**
@@ -59,7 +66,7 @@ public class DefaultConfigurations extends Configurations {
      * defaults files associated with the <em>caller</em> {@link Class}.
      */
     public DefaultConfigurations() {
-        super(load());
+        super(load(), false);
     }
 
     /**
@@ -67,7 +74,7 @@ public class DefaultConfigurations extends Configurations {
      * defaults files associated with the <em>specified</em> {@link Class}.
      */
     public DefaultConfigurations(Class<?> clazz) {
-        super(load(clazz));
+        super(load(clazz), false);
     }
 
     /* ====================================================================== */
@@ -87,9 +94,9 @@ public class DefaultConfigurations extends Configurations {
         final List<URL> resources = new ArrayList<>();
         discover(clazz, resources);
 
-        Configurations configurations = new Configurations(Collections.emptyMap());
+        Configurations configurations = Configurations.EMPTY_CONFIGURATIONS;
         for (URL resource: resources) {
-            configurations = configurations.merge(new PropertiesConfigurations(resource));
+            configurations = configurations.merge(new URLConfigurations(resource));
         }
 
         return configurations;

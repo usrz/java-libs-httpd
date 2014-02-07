@@ -60,7 +60,7 @@ public class CommandLineConfigurations extends Configurations {
      * specified arguments.
      */
     public CommandLineConfigurations(String... arguments) {
-        super(parse(arguments));
+        super(parse(arguments), true);
     }
 
     /* ====================================================================== */
@@ -83,7 +83,12 @@ public class CommandLineConfigurations extends Configurations {
 
                 /* If we're looking at -Dyyy=zzz parse key and value */
                 else {
-                    final String key = entry.substring(0, position);
+                    final String key;
+                    try {
+                        key = validateKey(entry.substring(0, position));
+                    } catch (ConfigurationsException exception) {
+                        throw exception.unchecked();
+                    }
                     final String value = entry.substring(position + 1);
                     configurations.put(key, value);
                 }
@@ -94,7 +99,7 @@ public class CommandLineConfigurations extends Configurations {
 
             } else {
                 /* Everything else is a reference to a properties file */
-                configurations.putAll(new PropertiesConfigurations(new File(argument)));
+                configurations.putAll(new FileConfigurations(new File(argument)));
             }
         }
 

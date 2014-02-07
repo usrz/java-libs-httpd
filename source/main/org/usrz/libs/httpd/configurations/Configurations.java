@@ -76,7 +76,7 @@ public class Configurations implements Map<String, String>, Cloneable {
     /**
      * Create a new {@link Configurations} instance optionally checking names.
      */
-    private Configurations(Map<?, ?> map, boolean checkNames) {
+    protected Configurations(Map<?, ?> map, boolean checkNames) {
         if (map == null) throw new NullPointerException("Null map");
 
         /* Do we *really* have to check names? */
@@ -87,11 +87,14 @@ public class Configurations implements Map<String, String>, Cloneable {
 
         /* Iterate through the given map */
         for (Entry<?, ?> entry: map.entrySet()) {
-            final String key = key(entry.getKey());
+            /* Validate or normalize the key */
+            final String key;
+            try {
+                key = checkNames ? validateKey(entry.getKey()) : key(entry.getKey());
+            } catch (ConfigurationsException exception) {
+                throw exception.unchecked();
+            }
             final Object object = entry.getValue();
-
-            if (!NAME_PATTERN.matcher(key).matches())
-                log.warn("Non-standard configuration key \"%s\"", key);
 
             /* Null or empty values? */
             if (object == null) {
@@ -987,6 +990,17 @@ public class Configurations implements Map<String, String>, Cloneable {
     @Override @Deprecated
     public final void clear() {
         throw new UnsupportedOperationException();
+    }
+
+    /* ====================================================================== */
+    /* VALIDATE KEY NAMES                                                     */
+    /* ====================================================================== */
+    protected static final String validateKey(Object key)
+    throws ConfigurationsException {
+        if (key == null) return "";
+        final String name = key.toString().trim();
+        if (NAME_PATTERN.matcher(name).matches()) return name;
+        throw new ConfigurationsException("Invalid key name \"" + key + "\"", true);
     }
 
     /* ====================================================================== */
