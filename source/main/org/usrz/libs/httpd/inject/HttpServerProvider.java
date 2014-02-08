@@ -31,7 +31,9 @@ import org.usrz.libs.logging.Log;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.ProvisionException;
+import com.google.inject.Singleton;
 
+@Singleton
 public class HttpServerProvider implements Provider<HttpServer >{
 
     private final static Log log = new Log();
@@ -39,6 +41,7 @@ public class HttpServerProvider implements Provider<HttpServer >{
     private final NetworkListenerFactory networkListenerFactory;
     private final HttpHandlerMapper httpHandlerFactory;
     private final Configurations configurations;
+    private HttpServer server;
 
     private ErrorPageGenerator defaultErrorPageGenerator;
 
@@ -58,6 +61,8 @@ public class HttpServerProvider implements Provider<HttpServer >{
 
     @Override
     public HttpServer get() {
+        if (server != null) return server;
+
         final String name = configurations.get("name", "!default");
         final HttpServer server = new HttpServer();
 
@@ -124,6 +129,6 @@ public class HttpServerProvider implements Provider<HttpServer >{
         configuration.setPassTraceRequest(false);
         configuration.setTraceEnabled(false);
 
-        return server;
+        return this.server = server;
     }
 }
