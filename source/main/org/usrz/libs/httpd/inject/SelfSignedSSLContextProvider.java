@@ -27,10 +27,10 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.security.auth.x500.X500Principal;
 
-import org.usrz.libs.crypto.cert.KeyPairBuilder;
 import org.usrz.libs.crypto.cert.X500PrincipalBuilder;
 import org.usrz.libs.crypto.cert.X509CertificateBuilder;
 import org.usrz.libs.crypto.cert.X509CertificateBuilder.Mode;
+import org.usrz.libs.crypto.utils.KeyPairBuilder;
 import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
