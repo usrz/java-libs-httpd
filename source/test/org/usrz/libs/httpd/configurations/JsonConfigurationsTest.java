@@ -43,7 +43,7 @@ public class JsonConfigurationsTest extends AbstractTest {
                         .build();
 
         final Configurations json = new JsonConfigurations(IO.resource("test.json"));
-        json.save(System.err);
+        json.list(System.err);
 
         assertEquals(configurations, json);
     }

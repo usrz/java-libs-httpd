@@ -876,29 +876,29 @@ public class Configurations implements Map<String, String>, Cloneable {
     }
 
     /* ====================================================================== */
-    /* DUMPING/SAVING                                                         */
+    /* DUMPING/LISTING                                                        */
     /* ====================================================================== */
 
     /**
-     * Save the contents of this {@link Configurations} instance to the
+     * List the contents of this {@link Configurations} instance to the
      * specified {@link OutputStream}.
      *
      * <p>This method will use the <em>UTF-8</em> character set, and will save
      * entries in a way similar to {@linkplain Properties java properties}.</p>
      */
-    public Configurations save(OutputStream output)
+    public Configurations list(OutputStream output)
     throws IOException {
-        return this.save(new OutputStreamWriter(output, UTF8));
+        return list(new OutputStreamWriter(output, UTF8));
     }
 
     /**
-     * Save the contents of this {@link Configurations} instance to the
+     * List the contents of this {@link Configurations} instance to the
      * specified {@link Writer}.
      *
      * <p>This method will save entries in a way similar to
      * {@linkplain Properties java properties}.</p>
      */
-    public Configurations save(Writer writer)
+    public Configurations list(Writer writer)
     throws IOException {
         final Set<String> sorted = new TreeSet<>(keySet());
         for (String key: sorted) {
@@ -908,7 +908,6 @@ public class Configurations implements Map<String, String>, Cloneable {
             writer.write(LINE_SEPARATOR);
         }
         writer.flush();
-        writer.close();
         return this;
     }
 

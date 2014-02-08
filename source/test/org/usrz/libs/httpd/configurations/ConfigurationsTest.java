@@ -269,7 +269,7 @@ public class ConfigurationsTest extends AbstractTest {
     public void testSaveLoad()
     throws Exception {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
-        final Configurations original = new ResourceConfigurations("test.properties").save(output);
+        final Configurations original = new ResourceConfigurations("test.properties").list(output);
 
         final ByteArrayInputStream input = new ByteArrayInputStream(output.toByteArray());
         final Configurations reloaded = new PropertiesConfigurations(input);

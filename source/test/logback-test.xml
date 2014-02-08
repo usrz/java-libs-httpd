@@ -9,7 +9,9 @@
     </encoder>
   </appender>
 
-  <root level="trace">
+  <logger name="org.usrz" level="trace" />
+
+  <root level="info">
     <appender-ref ref="stderr" />
   </root>
 
