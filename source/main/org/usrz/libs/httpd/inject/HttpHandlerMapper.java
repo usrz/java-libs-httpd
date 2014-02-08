@@ -48,7 +48,7 @@ public class HttpHandlerMapper {
         for (final Key<?> key: keys) {
             if (HTTP_HANDLER_TYPE_LITERAL.equals(key.getTypeLiteral())) {
                 final Annotation annotation = key.getAnnotation();
-                final String path = annotation instanceof At ? ((At)annotation).path() : "/";
+                final String path = annotation instanceof At ? ((At)annotation).path() : "/*";
                 final HttpHandler handler = (HttpHandler) injector.getInstance(key);
                 configuration.addHttpHandler(handler, path);
                 log.debug("Mapped handler \"%s\" under context path \"%s\"", handler.getClass(), path);
@@ -93,8 +93,7 @@ public class HttpHandlerMapper {
         private AtImpl(String path) {
             if (path == null) throw new NullPointerException("Null path");
             path = ("/" + path).replaceAll("/+", "/");
-            if (path.endsWith("/")) path = path.substring(0, path.length() - 1);
-            if (path.isEmpty()) path = "/";
+            path += path.endsWith("/") ? "*" : "/*";
             this.path = path;
         }
 
