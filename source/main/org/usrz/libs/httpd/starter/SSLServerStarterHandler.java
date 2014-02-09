@@ -135,7 +135,7 @@ public class SSLServerStarterHandler extends HttpHandler {
 
                 /* Send our JSON back to the caller */
                 final byte[] json = writer.toString().getBytes(UTF8);
-                response.setContentType(ContentType.newContentType("application/json", UTF8.name()));
+                response.setContentType(APPLICATION_JSON);
                 response.setContentLength(json.length);
                 response.getOutputStream().write(json);
 
@@ -196,7 +196,7 @@ public class SSLServerStarterHandler extends HttpHandler {
 
                 /* Send our JSON back to the caller */
                 final byte[] json = writer.toString().getBytes(UTF8);
-                response.setContentType(ContentType.newContentType("application/json", UTF8.name()));
+                response.setContentType(APPLICATION_JSON);
                 response.setContentLength(json.length);
                 response.getOutputStream().write(json);
 
