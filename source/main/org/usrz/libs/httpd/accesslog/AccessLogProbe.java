@@ -87,6 +87,15 @@ public class AccessLogProbe extends HttpServerProbe.Adapter {
     @Override @SuppressWarnings("rawtypes")
     public void onRequestReceiveEvent(HttpServerFilter filter, Connection connection, Request request) {
         request.setAttribute(ATTRIBUTE_TIME_STAMP, System.nanoTime());
+        /*
+         * It seems that in some edge cases Grizzly is not caching the
+         * connection addresses in the request / response structure. Internally
+         * the TCPNIOConnectionClass uses a Holder to store those (which
+         * provides lazy initialization). We force the holders to get (and
+         * cache) the values by alling the "get(Local|Peer)Address()" methods.
+         */
+        connection.getLocalAddress();
+        connection.getPeerAddress();
     }
 
     /**
