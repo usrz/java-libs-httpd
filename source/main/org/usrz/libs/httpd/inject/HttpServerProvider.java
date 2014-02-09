@@ -15,6 +15,7 @@
  * ========================================================================== */
 package org.usrz.libs.httpd.inject;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,6 +26,7 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.usrz.libs.httpd.accesslog.AccessLogBuilder;
 import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
@@ -69,6 +71,31 @@ public class HttpServerProvider implements Provider<HttpServer >{
         /* Get our configurations and set the server name */
         final ServerConfiguration configuration = server.getServerConfiguration();
         configuration.setName(name);
+
+        /* Set up our access log (if needed) */
+        final File accessLog = configurations.getFile("accesslog.file", null);
+        if (accessLog != null) {
+            /* Start building our access log */
+            final AccessLogBuilder accessLogBuilder = new AccessLogBuilder(accessLog);
+
+            /* Configure log rotation, if necessary */
+            final String rotate = configurations.getString("accesslog.rotate", null);
+            if (rotate != null) switch (rotate.toLowerCase()) {
+                case "daily":  accessLogBuilder.rotatedDaily(); break;
+                case "hourly": accessLogBuilder.rotatedHourly(); break;
+                default: throw new IllegalStateException("Unsupported value \"" + rotate + "\" for parameter \"accesslog.rotate\"");
+            } else {
+                final String rotationPattern = configurations.getString("accesslog.rotationPattern");
+                if (rotationPattern != null) accessLogBuilder.rotationPattern(rotationPattern);
+            }
+
+            /* Set the format, if we have to */
+            final String format = configurations.getString("accesslog.format", null);
+            if (format != null) accessLogBuilder.format(format);
+
+            /* Great! Instrument our server configurations */
+            accessLogBuilder.instrument(configuration);
+        }
 
         /* Get all our configured listeners */
         final Map<String, Configurations> listenersConfigurations = configurations.group("listeners");
