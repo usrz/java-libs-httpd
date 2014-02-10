@@ -134,7 +134,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         final StringBuilder builder = new StringBuilder();
         final Request request = response.getRequest();
         for (Field field: fields) try {
-            field.append(builder, request, response, timeStamp, responseNanos);
+            field.format(builder, request, response, timeStamp, responseNanos);
         } catch (Exception exception) {
             LOGGER.log(WARNING, "Exception formatting access log entry", exception);
             builder.append('-');
@@ -162,11 +162,9 @@ public class ApacheLogFormat implements AccessLogFormat {
             switch (format.charAt(x)) {
                 case '\\': x = parseEscape(format, x, fields); break;
                 case '%':  x = parseFormat(format, null, x, fields); break;
-                default: fields.add(new LiteralField(format.charAt(x)));
+                default: addLiteral(fields, format.charAt(x));
             }
         }
-        // TODO: optimize fields
-
         return fields;
     }
 
@@ -189,7 +187,7 @@ public class ApacheLogFormat implements AccessLogFormat {
 
             switch (field) {
                 case '{': return parseParameter(format, position, fields);
-                case '%': fields.add(new LiteralField('%')); break; // The percent sign
+                case '%': addLiteral(fields, '%'); break; // The percent sign
                 case 'a': fields.add(new RemoteAddressField()); break; // Remote IP-address
                 case 'A': fields.add(new LocalAddressField()); break; // Local IP-address
                 case 'b': fields.add(new ResponseSizeField(false)); break; // Size of response in bytes in CLF format
@@ -213,10 +211,10 @@ public class ApacheLogFormat implements AccessLogFormat {
                 case 'q': fields.add(new RequestQueryField()); break; // The query string (prepended with a ?)
                 case 'r': // First line of request, alias to "%m %U%q %H"
                     fields.add(new RequestMethodField());
-                    fields.add(new LiteralField(' '));
+                    addLiteral(fields, ' ');
                     fields.add(new RequestURIField());
                     fields.add(new RequestQueryField());
-                    fields.add(new LiteralField(' '));
+                    addLiteral(fields, ' ');
                     fields.add(new RequestProtocolField());
                     break;
 
@@ -258,16 +256,33 @@ public class ApacheLogFormat implements AccessLogFormat {
         if (++position < format.length()) {
             final char escaped = format.charAt(position);
             switch (escaped) {
-                case 't': fields.add(new LiteralField('\t')); break;
-                case 'b': fields.add(new LiteralField('\b')); break;
-                case 'n': fields.add(new LiteralField('\n')); break;
-                case 'r': fields.add(new LiteralField('\r')); break;
-                case 'f': fields.add(new LiteralField('\f')); break;
-                default:  fields.add(new LiteralField(escaped));
+                case 't': addLiteral(fields, '\t'); break;
+                case 'b': addLiteral(fields, '\b'); break;
+                case 'n': addLiteral(fields, '\n'); break;
+                case 'r': addLiteral(fields, '\r'); break;
+                case 'f': addLiteral(fields, '\f'); break;
+                default:  addLiteral(fields, escaped);
             }
             return position;
         }
         throw new IllegalArgumentException("Unterminated escape sequence in [" + format + "] at character " + position);
+    }
+
+    /* ====================================================================== */
+
+    private static List<Field> addLiteral(List<Field> fields, char c) {
+        /* See if we can add to the previuos literal field */
+        if (!fields.isEmpty()) {
+            final Field last = fields.get(fields.size() - 1);
+            if (last instanceof LiteralField) {
+                ((LiteralField) last).append(c);
+                return fields;
+            }
+        }
+
+        /* List empty or last field was not a literal, add a new one */
+        fields.add(new LiteralField(c, true));
+        return fields;
     }
 
     /* ====================================================================== */
@@ -276,7 +291,7 @@ public class ApacheLogFormat implements AccessLogFormat {
 
     private static abstract class Field {
 
-        abstract StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos);
+        abstract StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos);
 
         @Override
         public abstract String toString();
@@ -315,7 +330,7 @@ public class ApacheLogFormat implements AccessLogFormat {
             this.name = name.trim().toLowerCase();
         }
 
-        StringBuilder append(StringBuilder builder, MimeHeaders headersx) {
+        StringBuilder format(StringBuilder builder, MimeHeaders headersx) {
             final Iterator<String> headers = headersx.values(name).iterator();
             if (headers.hasNext()) builder.append(headers.next());
             while (headers.hasNext()) builder.append("; ").append(headers.next());
@@ -327,28 +342,36 @@ public class ApacheLogFormat implements AccessLogFormat {
 
     private static class LiteralField extends Field {
 
-        final char character;
+        final StringBuilder contents;
 
-        LiteralField(char character) {
-            this.character = character;
+        LiteralField(char character, boolean crack) {
+            contents = new StringBuilder().append(character);
+        }
+
+        void append(char character) {
+            contents.append(character);
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(character);
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+            return builder.append(contents);
         }
 
         @Override
         public String toString() {
-            switch(character) {
-                case 't': return("\\t");
-                case 'b': return("\\b");
-                case 'n': return("\\n");
-                case 'r': return("\\r");
-                case 'f': return("\\f");
-                case '%': return("%%");
-                default: return Character.toString(character);
+            final StringBuilder builder = new StringBuilder();
+            for (int x = 0; x < contents.length(); x ++) {
+                final char character = contents.charAt(x);
+                /* Escape \t \b \n \r \f and %% */
+                switch(character) {
+                    case 't': case 'b': case 'n': case 'r': case 'f':
+                        builder.append('\\'); break;
+                    case '%':
+                        builder.append('%'); break;
+                }
+                builder.append(character);
             }
+            return builder.toString();
         }
     }
 
@@ -361,7 +384,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getServerName());
         }
     }
@@ -375,7 +398,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getLocalName());
         }
     }
@@ -389,7 +412,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getLocalAddr());
         }
     }
@@ -403,7 +426,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getLocalPort());
         }
     }
@@ -417,7 +440,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getRemoteHost());
         }
     }
@@ -431,7 +454,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getRemoteAddr());
         }
     }
@@ -445,7 +468,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getRemotePort());
         }
     }
@@ -464,7 +487,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(timeStamp == null ? "-" : simpleDateFormat.get().format(timeStamp));
         }
 
@@ -483,7 +506,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getMethod());
         }
     }
@@ -497,7 +520,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             final String user = request.getRemoteUser();
             return builder.append(user == null ? "-" : user);
         }
@@ -512,7 +535,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             return builder.append(request.getRequestURI());
         }
     }
@@ -526,7 +549,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             final String query = request.getQueryString();
             if (query != null) builder.append('?').append(query);
             return builder;
@@ -542,7 +565,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             final Protocol protocol = request.getProtocol();
             if (protocol == null) return builder.append("-");
             switch (protocol) {
@@ -563,8 +586,8 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return this.append(builder, request.getRequest().getHeaders());
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+            return this.format(builder, request.getRequest().getHeaders());
         }
     }
 
@@ -580,7 +603,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             for (Cookie cookie: request.getCookies()) {
                 if (name.equals(cookie.getName().toLowerCase())) {
                     return builder.append(cookie.getValue());
@@ -599,7 +622,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             final int status = response.getStatus();
             if (status < 10) builder.append('0');
             if (status < 100) builder.append('0');
@@ -619,7 +642,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             final long size = response.getContentLengthLong();
             return builder.append(size < 1 ? zero : Long.toString(size));
         }
@@ -649,7 +672,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
             if (responseNanos < 0) return builder.append('-');
             return builder.append(responseNanos / scale);
         }
@@ -675,8 +698,8 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
 
         @Override
-        StringBuilder append(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return this.append(builder, response.getResponse().getHeaders());
+        StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
+            return this.format(builder, response.getResponse().getHeaders());
         }
     }
 }
