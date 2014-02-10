@@ -114,31 +114,44 @@ public class ApacheLogFormat implements AccessLogFormat {
     /* The UTC time zone */
     private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
 
+    /** A {@link String} representing our version of Apache's <em>common</em> format. */
+    public static final String COMMON_FORMAT = "%h - %u %t \"%r\" %s %b";
+    /** A {@link String} representing our version of Apache's <em>combined</em> format. */
+    public static final String COMBINED_FORMAT = "%h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"";
+    /** A {@link String} representing our version of Apache's <em>common with virtual-hosts</em> format. */
+    public static final String VHOST_COMMON_FORMAT = "%v %h - %u %t \"%r\" %s %b";
+    /** A {@link String} representing our version of Apache's <em>combined with virtual-hosts</em> format. */
+    public static final String VHOST_COMBINED_FORMAT = "%v %h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"";
+    /** A {@link String} representing our version of Apache's <em>referer</em> format. */
+    public static final String REFERER_FORMAT = "%{Referer}i -> %U";
+    /** A {@link String} representing our version of Apache's <em>user-agent</em> format. */
+    public static final String AGENT_FORMAT = "%{User-agent}i";
+
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common</em> format. */
-    public static final ApacheLogFormat COMMON = new ApacheLogFormat("%h - %u %t \"%r\" %s %b");
+    public static final ApacheLogFormat COMMON = new ApacheLogFormat(COMMON_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined</em> format. */
-    public static final ApacheLogFormat COMBINED = new ApacheLogFormat("%h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"");
+    public static final ApacheLogFormat COMBINED = new ApacheLogFormat(COMBINED_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common with virtual-hosts</em> format. */
-    public static final ApacheLogFormat VHOST_COMMON = new ApacheLogFormat("%v %h - %u %t \"%r\" %s %b");
+    public static final ApacheLogFormat VHOST_COMMON = new ApacheLogFormat(VHOST_COMMON_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined with virtual-hosts</em> format. */
-    public static final ApacheLogFormat VHOST_COMBINED = new ApacheLogFormat("%v %h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"");
+    public static final ApacheLogFormat VHOST_COMBINED = new ApacheLogFormat(VHOST_COMBINED_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>referer</em> format. */
-    public static final ApacheLogFormat REFERER = new ApacheLogFormat("%{Referer}i -> %U");
+    public static final ApacheLogFormat REFERER = new ApacheLogFormat(REFERER_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>user-agent</em> format. */
-    public static final ApacheLogFormat AGENT = new ApacheLogFormat("%{User-agent}i");
+    public static final ApacheLogFormat AGENT = new ApacheLogFormat(AGENT_FORMAT);
 
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
-    public static final ApacheLogFormat COMMON_UTC = new ApacheLogFormat(UTC, "%h - %u %t \"%r\" %s %b");
+    public static final ApacheLogFormat COMMON_UTC = new ApacheLogFormat(UTC, COMMON_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
-    public static final ApacheLogFormat COMBINED_UTC = new ApacheLogFormat(UTC, "%h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"");
+    public static final ApacheLogFormat COMBINED_UTC = new ApacheLogFormat(UTC, COMBINED_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common with virtual-hosts</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
-    public static final ApacheLogFormat VHOST_COMMON_UTC = new ApacheLogFormat(UTC, "%v %h - %u %t \"%r\" %s %b");
+    public static final ApacheLogFormat VHOST_COMMON_UTC = new ApacheLogFormat(UTC, VHOST_COMMON_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined with virtual-hosts</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
-    public static final ApacheLogFormat VHOST_COMBINED_UTC = new ApacheLogFormat(UTC, "%v %h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"");
+    public static final ApacheLogFormat VHOST_COMBINED_UTC = new ApacheLogFormat(UTC, VHOST_COMBINED_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>referer</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
-    public static final ApacheLogFormat REFERER_UTC = new ApacheLogFormat(UTC, "%{Referer}i -> %U");
+    public static final ApacheLogFormat REFERER_UTC = new ApacheLogFormat(UTC, REFERER_FORMAT);
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>user-agent</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
-    public static final ApacheLogFormat AGENT_UTC = new ApacheLogFormat(UTC, "%{User-agent}i");
+    public static final ApacheLogFormat AGENT_UTC = new ApacheLogFormat(UTC, AGENT_FORMAT);
 
     /* Log log log, never enough */
     private static final Logger LOGGER = Grizzly.logger(HttpServer.class);
@@ -765,10 +778,10 @@ public class ApacheLogFormat implements AccessLogFormat {
         @Override
         public String toString() {
             final StringBuilder string = new StringBuilder().append('%');
-            if      (scale          == 1) string.append('T');
-            else if (scale       == 1000) string.append("{m}T");
-            else if (scale    == 1000000) string.append("D");
-            else if (scale == 1000000000) string.append("{n}T");
+            if      (scale          == 1) string.append("{n}T");
+            else if (scale       == 1000) string.append('D');
+            else if (scale    == 1000000) string.append("{m}T");
+            else if (scale == 1000000000) string.append('T');
             else string.append('{').append(scale).append("}T");
             return string.toString();
         }
