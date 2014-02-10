@@ -15,8 +15,6 @@
  * ========================================================================== */
 package org.usrz.libs.httpd.accesslog;
 
-import static org.usrz.libs.httpd.accesslog.AccessLogProbe.DEFAULT_STATUS_THRESHOLD;
-
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -43,7 +41,7 @@ public class AccessLogBuilder {
     /* Our default access log format (Apache "combined" log) */
     private AccessLogFormat format = ApacheLogFormat.COMBINED;
     /* The default status threshold (log everything) */
-    private int statusThreshold = DEFAULT_STATUS_THRESHOLD;
+    private int statusThreshold = AccessLogProbe.DEFAULT_STATUS_THRESHOLD;
     /* Null rotation pattern, do NOT rotate by default */
     private String rotationPattern = null;
     /* Non-synchronous, always use a Queue+Thread */
