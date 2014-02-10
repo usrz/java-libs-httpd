@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
@@ -80,8 +82,15 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  *     <td>Status code</td></tr>
  * <tr><th><code>%t</code></th>
  *     <td>The time the request was received, in standard <em>English</em> format (like "<code>[09/Feb/2014:12:00:34 +0900]</code>")</td></tr>
- * <tr><th><code>%{format}t</code></th>
- *     <td>The time the request was received, in the form given by "<code>format</code>", as specified by {@link SimpleDateFormat}</td></tr>
+ * <tr><th><code>%{[format][@timezone]}t</code></th>
+ *     <td>The time the request was received. Both <em>format</em> and <em>timezone</em> are optional<br>
+ *         <ul><li>When "<code>format</code>" is left unspecified, the default <code>%t</code> format <code>[yyyy/MMM/dd:HH:mm:ss Z]</code> is used</li>
+ *             <li>When "<code>format</code>" is specified, the given pattern <b>must</b> be a valid {@link SimpleDateFormat} pattern.</li>
+ *             <li>When "<code>@timezone</code>" is left unspecified, the {@linkplain TimeZone#getDefault() default time zone} is used.</li>
+ *             <li>When "<code>@timezone</code>" is specified, the time zone will be looked up by {@linkplain TimeZone#getTimeZone(String) time zone identifier}
+ *                 (note that this will default to <em>GMT</em> if the specified identifier was not recognized).</li>
+ *         </ul>
+ *         When the "<code>@</code>" character needs to be used in the <em>format</em>, it <b>must</b> be escaped as "<em>@@</em>"</td></tr>
  * <tr><th><code>%T</code></th>
  *     <td>The time taken to serve the request, in seconds</td></tr>
  * <tr><th><code>%{...}T</code></th>
@@ -102,6 +111,9 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  */
 public class ApacheLogFormat implements AccessLogFormat {
 
+    /* The UTC time zone */
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common</em> format. */
     public static final ApacheLogFormat COMMON = new ApacheLogFormat("%h - %u %t \"%r\" %s %b");
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined</em> format. */
@@ -115,18 +127,45 @@ public class ApacheLogFormat implements AccessLogFormat {
     /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>user-agent</em> format. */
     public static final ApacheLogFormat AGENT = new ApacheLogFormat("%{User-agent}i");
 
+    /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
+    public static final ApacheLogFormat COMMON_UTC = new ApacheLogFormat(UTC, "%h - %u %t \"%r\" %s %b");
+    /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
+    public static final ApacheLogFormat COMBINED_UTC = new ApacheLogFormat(UTC, "%h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"");
+    /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>common with virtual-hosts</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
+    public static final ApacheLogFormat VHOST_COMMON_UTC = new ApacheLogFormat(UTC, "%v %h - %u %t \"%r\" %s %b");
+    /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>combined with virtual-hosts</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
+    public static final ApacheLogFormat VHOST_COMBINED_UTC = new ApacheLogFormat(UTC, "%v %h - %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"");
+    /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>referer</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
+    public static final ApacheLogFormat REFERER_UTC = new ApacheLogFormat(UTC, "%{Referer}i -> %U");
+    /** A {@linkplain ApacheLogFormat format} compatible with Apache's <em>user-agent</em> format set to use the <em>UTC</em> {@linkplain TimeZone time zone}. */
+    public static final ApacheLogFormat AGENT_UTC = new ApacheLogFormat(UTC, "%{User-agent}i");
+
     /* Log log log, never enough */
     private static final Logger LOGGER = Grizzly.logger(HttpServer.class);
 
     /* Our list of fields for formatting */
     private final List<Field> fields;
 
+    /* Our timezone */
+    private final TimeZone timeZone;
+
     /**
      * Create a new {@link ApacheLogFormat} instance by parsing the format
      * from the specified {@link String}.
      */
     public ApacheLogFormat(String format) {
-        fields = parse(format);
+        this(TimeZone.getDefault(), format);
+    }
+
+    /**
+     * Create a new {@link ApacheLogFormat} instance by parsing the format
+     * from the specified {@link String}.
+     */
+    public ApacheLogFormat(TimeZone timeZone, String format) {
+        if (timeZone == null) throw new NullPointerException("Null time zone");
+        fields = new ArrayList<>();
+        this.timeZone = timeZone;
+        parse(format);
     }
 
     @Override
@@ -138,6 +177,15 @@ public class ApacheLogFormat implements AccessLogFormat {
         } catch (Exception exception) {
             LOGGER.log(WARNING, "Exception formatting access log entry", exception);
             builder.append('-');
+        }
+        return builder.toString();
+    }
+
+    String unsafeFormat(Response response, Date timeStamp, long responseNanos) {
+        final StringBuilder builder = new StringBuilder();
+        final Request request = response.getRequest();
+        for (Field field: fields) {
+            field.format(builder, request, response, timeStamp, responseNanos);
         }
         return builder.toString();
     }
@@ -155,20 +203,17 @@ public class ApacheLogFormat implements AccessLogFormat {
     /* PARSING OF FORMAT STRINGS                                              */
     /* ====================================================================== */
 
-    private static List<Field> parse(String format) {
-        final List<Field> fields = new ArrayList<>();
-
+    private void parse(String format) {
         for (int x = 0; x < format.length(); x ++) {
             switch (format.charAt(x)) {
-                case '\\': x = parseEscape(format, x, fields); break;
-                case '%':  x = parseFormat(format, null, x, fields); break;
-                default: addLiteral(fields, format.charAt(x));
+                case '\\': x = parseEscape(format, x); break;
+                case '%':  x = parseFormat(format, null, x); break;
+                default: addLiteral(format.charAt(x));
             }
         }
-        return fields;
     }
 
-    private static int parseFormat(String format, String parameter, int position, List<Field> fields) {
+    private int parseFormat(String format, String parameter, int position) {
         if (++position < format.length()) {
             final char field = format.charAt(position);
 
@@ -186,8 +231,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
 
             switch (field) {
-                case '{': return parseParameter(format, position, fields);
-                case '%': addLiteral(fields, '%'); break; // The percent sign
+                case '{': return parseParameter(format, position);
+                case '%': addLiteral('%'); break; // The percent sign
                 case 'a': fields.add(new RemoteAddressField()); break; // Remote IP-address
                 case 'A': fields.add(new LocalAddressField()); break; // Local IP-address
                 case 'b': fields.add(new ResponseSizeField(false)); break; // Size of response in bytes in CLF format
@@ -211,15 +256,15 @@ public class ApacheLogFormat implements AccessLogFormat {
                 case 'q': fields.add(new RequestQueryField()); break; // The query string (prepended with a ?)
                 case 'r': // First line of request, alias to "%m %U%q %H"
                     fields.add(new RequestMethodField());
-                    addLiteral(fields, ' ');
+                    addLiteral(' ');
                     fields.add(new RequestURIField());
                     fields.add(new RequestQueryField());
-                    addLiteral(fields, ' ');
+                    addLiteral(' ');
                     fields.add(new RequestProtocolField());
                     break;
 
                 case 's': fields.add(new ResponseStatusField()); break; // Status.
-          /* */ case 't': fields.add(new RequestTimeField(parameter)); break; // The time, in the form given by format, which should be in strftime(3) format. (potentially localized)
+          /* */ case 't': fields.add(new RequestTimeField(parameter, timeZone)); break; // The time, in the form given by format, which should be in strftime(3) format. (potentially localized)
           /* */ case 'T': fields.add(new ResponseTimeField(parameter, format, position)); break; // The time taken to serve the request, in the scale specified.
                 case 'u': fields.add(new RequestUserField()); break; // The URL path requested, not including any query string.
                 case 'U': fields.add(new RequestURIField()); break; // The URL path requested, not including any query string.
@@ -231,7 +276,7 @@ public class ApacheLogFormat implements AccessLogFormat {
         throw new IllegalArgumentException("Unterminated field declaration in [" + format + "] at character " + position);
     }
 
-    private static boolean parseLocal(String parameter, boolean defaultValue, char field, String format, int position) {
+    private boolean parseLocal(String parameter, boolean defaultValue, char field, String format, int position) {
         if (parameter == null) return defaultValue;
         switch (parameter.trim().toLowerCase()) {
             case "local": return true;
@@ -240,28 +285,28 @@ public class ApacheLogFormat implements AccessLogFormat {
         }
     }
 
-    private static int parseParameter(String format, int position, List<Field> fields) {
+    private int parseParameter(String format, int position) {
         if (++position < format.length()) {
             final int end = format.indexOf('}', position);
             if (end == position) {
-                return parseFormat(format, null, end, fields);
+                return parseFormat(format, null, end);
             } else if (end > position) {
-                return parseFormat(format, format.substring(position, end), end, fields);
+                return parseFormat(format, format.substring(position, end), end);
             }
         }
         throw new IllegalArgumentException("Unterminated format parameter in [" + format + "] at character " + position);
     }
 
-    private static int parseEscape(String format, int position, List<Field> fields) {
+    private int parseEscape(String format, int position) {
         if (++position < format.length()) {
             final char escaped = format.charAt(position);
             switch (escaped) {
-                case 't': addLiteral(fields, '\t'); break;
-                case 'b': addLiteral(fields, '\b'); break;
-                case 'n': addLiteral(fields, '\n'); break;
-                case 'r': addLiteral(fields, '\r'); break;
-                case 'f': addLiteral(fields, '\f'); break;
-                default:  addLiteral(fields, escaped);
+                case 't': addLiteral('\t'); break;
+                case 'b': addLiteral('\b'); break;
+                case 'n': addLiteral('\n'); break;
+                case 'r': addLiteral('\r'); break;
+                case 'f': addLiteral('\f'); break;
+                default:  addLiteral(escaped);
             }
             return position;
         }
@@ -270,19 +315,18 @@ public class ApacheLogFormat implements AccessLogFormat {
 
     /* ====================================================================== */
 
-    private static List<Field> addLiteral(List<Field> fields, char c) {
+    private void addLiteral(char c) {
         /* See if we can add to the previuos literal field */
         if (!fields.isEmpty()) {
             final Field last = fields.get(fields.size() - 1);
             if (last instanceof LiteralField) {
                 ((LiteralField) last).append(c);
-                return fields;
+                return;
             }
         }
 
         /* List empty or last field was not a literal, add a new one */
         fields.add(new LiteralField(c, true));
-        return fields;
     }
 
     /* ====================================================================== */
@@ -330,10 +374,10 @@ public class ApacheLogFormat implements AccessLogFormat {
             this.name = name.trim().toLowerCase();
         }
 
-        StringBuilder format(StringBuilder builder, MimeHeaders headersx) {
-            final Iterator<String> headers = headersx.values(name).iterator();
-            if (headers.hasNext()) builder.append(headers.next());
-            while (headers.hasNext()) builder.append("; ").append(headers.next());
+        StringBuilder format(StringBuilder builder, MimeHeaders headers) {
+            final Iterator<String> iterator = headers.values(name).iterator();
+            if (iterator.hasNext()) builder.append(iterator.next());
+            while (iterator.hasNext()) builder.append("; ").append(iterator.next());
             return builder;
         }
     }
@@ -385,7 +429,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getServerName());
+            final String name = request.getServerName();
+            return builder.append(name == null ? "-" : name);
         }
     }
 
@@ -399,7 +444,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getLocalName());
+            final String host = request.getLocalName();
+            return builder.append(host == null ? "-" : host);
         }
     }
 
@@ -413,7 +459,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getLocalAddr());
+            final String address = request.getLocalAddr();
+            return builder.append(address == null ? "-" : address);
         }
     }
 
@@ -427,7 +474,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getLocalPort());
+            final int port = request.getLocalPort();
+            return builder.append(port < 1 ? "-" : port);
         }
     }
 
@@ -441,7 +489,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getRemoteHost());
+            final String host = request.getRemoteHost();
+            return builder.append(host == null ? "-" : host);
         }
     }
 
@@ -455,7 +504,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getRemoteAddr());
+            final String address = request.getRemoteAddr();
+            return builder.append(address == null ? "-" : address);
         }
     }
 
@@ -469,7 +519,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getRemotePort());
+            final int port = request.getRemotePort();
+            return builder.append(port < 1 ? "-" : port);
         }
     }
 
@@ -477,23 +528,50 @@ public class ApacheLogFormat implements AccessLogFormat {
 
     private static class RequestTimeField extends Field {
 
-        private static final String DEFAULT_FORMAT = "[yyyy/MMM/dd:HH:mm:ss Z]";
+        private static final String DEFAULT_PATTERN = "[yyyy/MMM/dd:HH:mm:ss Z]";
+        private static final TimeZone DEFAULT_TIME_ZONE = TimeZone.getDefault();
         private final SimpleDateFormatThreadLocal simpleDateFormat;
+        private final TimeZone timeZone;
+        private final String pattern;
         private final String format;
 
-        RequestTimeField(String format) {
-            this.format = format == null ? DEFAULT_FORMAT : format;
-            simpleDateFormat = new SimpleDateFormatThreadLocal(this.format);
+        RequestTimeField(String format, TimeZone zone) {
+            this.format = format;
+            if (format == null) {
+                pattern = DEFAULT_PATTERN;
+                timeZone = zone;
+            } else {
+                /* Check for timezone separation */
+                final int pos = format.lastIndexOf('@');
+
+                /* There is no '@' or the last '@' is actually an '@@' */
+                if ((pos < 0) || ((pos > 1) && (format.charAt(pos - 1) == '@'))) {
+                    pattern = format.replace("@@", "@");
+                    timeZone = zone;
+
+                /* We actually *DO* have a time zone specified */
+                } else {
+                    pattern = format.substring(0, pos).replace("@@", "@");
+                    timeZone = TimeZone.getTimeZone(format.substring(pos + 1));
+                }
+            }
+
+            /* Get our simple date format */
+            simpleDateFormat = new SimpleDateFormatThreadLocal(pattern);
         }
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(timeStamp == null ? "-" : simpleDateFormat.get().format(timeStamp));
+            if (timeStamp == null) return builder.append('-');
+
+            final SimpleDateFormat format = simpleDateFormat.get();
+            format.setTimeZone(timeZone);
+            return builder.append(format.format(timeStamp));
         }
 
         @Override
         public String toString() {
-            return DEFAULT_FORMAT.equals(format) ? "%t" : "%{" + format + "}";
+            return format == null ? "%t" : "%{" + format + "}t";
         }
     }
 
@@ -507,7 +585,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getMethod());
+            final Method method = request.getMethod();
+            return builder.append(method == null ? "-" : method.toString());
         }
     }
 
@@ -536,7 +615,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            return builder.append(request.getRequestURI());
+            final String uri = request.getRequestURI();
+            return builder.append(uri == null ? "-" : uri);
         }
     }
 
@@ -604,7 +684,8 @@ public class ApacheLogFormat implements AccessLogFormat {
 
         @Override
         StringBuilder format(StringBuilder builder, Request request, Response response, Date timeStamp, long responseNanos) {
-            for (Cookie cookie: request.getCookies()) {
+            final Cookie[] cookies = request.getCookies();
+            if (cookies != null) for (Cookie cookie: cookies) {
                 if (name.equals(cookie.getName().toLowerCase())) {
                     return builder.append(cookie.getValue());
                 }

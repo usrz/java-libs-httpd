@@ -20,6 +20,7 @@ import static org.usrz.libs.httpd.accesslog.AccessLogProbe.DEFAULT_STATUS_THRESH
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerMonitoringConfig;
@@ -27,6 +28,13 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
 
 /**
  * A simple <em>builder</em> to configure access logging for Grizzly.
+ *
+ * <p>If the {@linkplain #format(AccessLogFormat) format} is left unspecified,
+ * the default {@linkplain ApacheLogFormat#COMBINED Apache combined format}
+ * will be used.</p>
+ *
+ * <p>If the {@linkplain #timeZone(TimeZone) time zone} is left unspecified,
+ * the {@link TimeZone#getDefault() default time zone} will be used.</p>
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
@@ -40,6 +48,7 @@ public class AccessLogBuilder {
     private String rotationPattern = null;
     /* Non-synchronous, always use a Queue+Thread */
     private boolean synchronous = false;
+
     /* The base file name of the access log */
     private final File file;
 
@@ -143,8 +152,32 @@ public class AccessLogBuilder {
      */
     public AccessLogBuilder format(String format) {
         if (format == null) throw new NullPointerException("Null format");
-        this.format = new ApacheLogFormat(format);
-        return this;
+        return this.format(new ApacheLogFormat(format));
+    }
+
+    /**
+     * Set the <em>time zone</em> that will be used to represent dates.
+     */
+    public AccessLogBuilder timeZone(TimeZone timeZone) {
+        if (timeZone == null) throw new NullPointerException("Null time zone");
+        if (format instanceof ApacheLogFormat) {
+            final ApacheLogFormat apacheFormat = (ApacheLogFormat) format;
+            format = new ApacheLogFormat(timeZone, apacheFormat.getFormat());
+            return this;
+        }
+        throw new IllegalStateException("TimeZone can not be set for " + format.getClass().getName());
+    }
+
+    /**
+     * Set the <em>time zone</em> that will be used to represent dates.
+     *
+     * <p>The time zone will be looked up by
+     * {@linkplain TimeZone#getTimeZone(String) time zone identifier}, and if
+     * this is invalid or unrecognized, it will default to <em>GMT</em>.</p>
+     */
+    public AccessLogBuilder timeZone(String timeZone) {
+        if (timeZone == null) throw new NullPointerException("Null time zone");
+        return this.timeZone(TimeZone.getTimeZone(timeZone));
     }
 
     /**
