@@ -93,6 +93,10 @@ public class HttpServerProvider implements Provider<HttpServer >{
             final String format = configurations.getString("accesslog.format", null);
             if (format != null) accessLogBuilder.format(format);
 
+            /* Finally configure time zone, if we need to... */
+            final String timezone = configurations.getString("accesslog.timezone", null);
+            if (timezone != null) accessLogBuilder.timeZone(timezone);
+
             /* Great! Instrument our server configurations */
             accessLogBuilder.instrument(configuration);
         }
