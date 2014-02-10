@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.glassfish.grizzly.http.Method.GET;
 import static org.glassfish.grizzly.http.Protocol.HTTP_1_1;
+import static org.testng.Assert.assertEquals;
 
 import java.util.Date;
 import java.util.TimeZone;
@@ -34,9 +35,8 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.mockito.Mockito;
 import org.mockito.internal.stubbing.answers.ThrowsException;
 import org.testng.annotations.Test;
-import org.usrz.libs.testing.AbstractTest;
 
-public class ApacheLogFormatTest extends AbstractTest {
+public class ApacheLogFormatTest { // DO NOT EXTEND "AbstractTest" (this goes back to Grizzly)
 
     private static final Date date = new Date(1389829512345L); //1389797112345L + 32400000L); // Jan 15th, 2014 @ 23:45:12.345 UTC
     private static final long nanos = 1234567890;
