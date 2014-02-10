@@ -529,7 +529,6 @@ public class ApacheLogFormat implements AccessLogFormat {
     private static class RequestTimeField extends Field {
 
         private static final String DEFAULT_PATTERN = "[yyyy/MMM/dd:HH:mm:ss Z]";
-        private static final TimeZone DEFAULT_TIME_ZONE = TimeZone.getDefault();
         private final SimpleDateFormatThreadLocal simpleDateFormat;
         private final TimeZone timeZone;
         private final String pattern;
@@ -544,13 +543,18 @@ public class ApacheLogFormat implements AccessLogFormat {
                 /* Check for timezone separation */
                 final int pos = format.lastIndexOf('@');
 
-                /* There is no '@' or the last '@' is actually an '@@' */
-                if ((pos < 0) || ((pos > 1) && (format.charAt(pos - 1) == '@'))) {
+                if ((pos < 0) || ((pos > 0) && (format.charAt(pos - 1) == '@'))) {
+                    /* There is no '@' or the last '@' is actually an '@@' */
                     pattern = format.replace("@@", "@");
                     timeZone = zone;
 
-                /* We actually *DO* have a time zone specified */
+                } else if (pos == 0) {
+                    /* We have *ONLY* a time zone specified */
+                    pattern = DEFAULT_PATTERN;
+                    timeZone = TimeZone.getTimeZone(format.substring(1));
+
                 } else {
+                    /* We have both format and time zone */
                     pattern = format.substring(0, pos).replace("@@", "@");
                     timeZone = TimeZone.getTimeZone(format.substring(pos + 1));
                 }
