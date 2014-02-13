@@ -142,8 +142,8 @@ public class HttpServerProvider implements Provider<HttpServer >{
         for (Map.Entry<HttpHandler, String[]> entry: handlers.entrySet()) {
             final HttpHandler handler = entry.getKey();
             for (String path: entry.getValue()) {
-                log.info("Handler \"%s\" configured at path \"%s\" for server \"%s\"",
-                         handler.getClass().getName(), path, name);
+                log.info("Handler \"%s[%s]\" configured at path \"%s\" for server \"%s\"",
+                         handler.getClass().getName(), handler.getName(), path, name);
             }
         }
 

@@ -51,7 +51,7 @@ public class HttpHandlerMapper {
                 final String path = annotation instanceof At ? ((At)annotation).path() : "/*";
                 final HttpHandler handler = (HttpHandler) injector.getInstance(key);
                 configuration.addHttpHandler(handler, path);
-                log.debug("Mapped handler \"%s\" under context path \"%s\"", handler.getClass(), path);
+                log.debug("Mapped handler \"%s[%s]\" under context path \"%s\"", handler.getClass().getName(), handler.getName(), path);
             }
         }
         return configuration;
