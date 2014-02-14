@@ -21,7 +21,7 @@
     <dependency org="org.glassfish" name="jersey-grizzly" rev="latest.release" conf="default"/>
     <dependency org="org.glassfish" name="hk2-guice-bridge" rev="latest.release" conf="default"/>
     <dependency org="com.google" name="guice" rev="latest.release" conf="default"/>
-    <dependency org="com.fasterxml" name="jackson-core" rev="latest.release" conf="default"/>
+    <dependency org="com.fasterxml" name="jackson-jaxrs-provider" rev="latest.release" conf="default"/>
 
     <dependency org="org.testng" name="testng" rev="latest.release" conf="test-&gt;default"/>
     <dependency org="org.mockito" name="mockito" rev="latest.release" conf="test-&gt;default"/>
