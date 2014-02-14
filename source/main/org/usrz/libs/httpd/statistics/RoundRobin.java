@@ -72,7 +72,7 @@ public class RoundRobin {
          * Aggregate and average the values of each individual
          * {@linkplain #record(long, long) recording} for each data point.
          *
-         * <p>This is similar to {@link SUM} but the
+         * <p>This is similar to {@link Type#SUM SUM} but the
          * {@link RoundRobin#entries()} method will divide the sum by the
          * number of recordings in order to return an average value for
          * each data point.</p>
