@@ -5,7 +5,8 @@
 
   <configurations>
     <conf name="default" visibility="public"/>
-    <conf name="test" visibility="private" extends="default"/>
+    <conf name="compile" visibility="private" extends="default"/>
+    <conf name="testing" visibility="private" extends="compile"/>
   </configurations>
 
   <publications>
@@ -23,9 +24,8 @@
     <dependency org="com.google" name="guice" rev="latest.release" conf="default"/>
     <dependency org="com.fasterxml" name="jackson-jaxrs-provider" rev="latest.release" conf="default"/>
 
-    <dependency org="org.testng" name="testng" rev="latest.release" conf="test-&gt;default"/>
-    <dependency org="org.mockito" name="mockito" rev="latest.release" conf="test-&gt;default"/>
-    <dependency org="org.usrz.libs" name="testing" rev="latest.release" conf="test-&gt;default"/>
+    <dependency org="org.mockito" name="mockito" rev="latest.release" conf="testing-&gt;default"/>
+    <dependency org="org.usrz.libs" name="testing" rev="latest.release" conf="testing-&gt;default"/>
   </dependencies>
 
 </ivy-module>
