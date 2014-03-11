@@ -32,7 +32,6 @@ import org.usrz.libs.logging.Log;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.ProvisionException;
 import com.google.inject.Singleton;
 
 @Singleton
@@ -127,7 +126,7 @@ public class HttpServerProvider implements Provider<HttpServer >{
 
         /* Check that we have some listeners and dump out some informations about them */
         final Collection<NetworkListener> listeners = server.getListeners();
-        if (listeners.isEmpty()) throw new ProvisionException("No listeners configured for server \"" + name +"\"");
+        if (listeners.isEmpty()) throw new IllegalStateException("No listeners configured for server \"" + name +"\"");
         for (NetworkListener listener: listeners) {
             log.info("Listener \"%s\" (host=%s, port=%s, secure=%b) configured for server \"%s\"",
                      listener.getName(), listener.getHost(), listener.getPort(), listener.isSecure(), name);
@@ -138,7 +137,7 @@ public class HttpServerProvider implements Provider<HttpServer >{
 
         /* Check that we have some handlers and dump out some informations about them */
         final Map<HttpHandler, String[]> handlers = configuration.getHttpHandlers();
-        if (handlers.isEmpty()) throw new ProvisionException("No handlers configured for server \"" + name +"\"");
+        if (handlers.isEmpty()) throw new IllegalStateException("No handlers configured for server \"" + name +"\"");
         for (Map.Entry<HttpHandler, String[]> entry: handlers.entrySet()) {
             final HttpHandler handler = entry.getKey();
             for (String path: entry.getValue()) {

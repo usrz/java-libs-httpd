@@ -33,7 +33,6 @@ import org.usrz.libs.logging.Log;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.ProvisionException;
 import com.google.inject.Singleton;
 
 @Singleton
@@ -91,7 +90,7 @@ public class SSLContextProvider implements Provider<SSLContext> {
 
             /* We must have a keyStore if we're being called */
             final File keyStoreFile = configurations.getFile("keyStore.file");
-            if (keyStoreFile == null) throw new ProvisionException("KeyStore file not configured");
+            if (keyStoreFile == null) throw new IllegalStateException("KeyStore file not configured");
 
             /* Load our key manager key store */
             final KeyStore keyStore = getKeyStore(configurations.get("keyStore.type"),
