@@ -36,8 +36,8 @@ import org.glassfish.jersey.server.ContainerException;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
 import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
-import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configurations;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

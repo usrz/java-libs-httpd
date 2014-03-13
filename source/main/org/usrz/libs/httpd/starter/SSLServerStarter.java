@@ -21,13 +21,13 @@ import javax.net.ssl.SSLContext;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.usrz.libs.httpd.configurations.Configurations;
-import org.usrz.libs.httpd.configurations.ConfigurationsBuilder;
 import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerFactory;
 import org.usrz.libs.httpd.inject.SSLPasswordCallback;
 import org.usrz.libs.httpd.inject.SelfSignedSSLContextProvider;
 import org.usrz.libs.logging.Logging;
+import org.usrz.libs.utils.configurations.Configurations;
+import org.usrz.libs.utils.configurations.ConfigurationsBuilder;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;

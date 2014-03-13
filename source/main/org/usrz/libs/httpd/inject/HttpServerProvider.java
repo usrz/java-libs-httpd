@@ -27,8 +27,8 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.usrz.libs.httpd.accesslog.AccessLogBuilder;
-import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;

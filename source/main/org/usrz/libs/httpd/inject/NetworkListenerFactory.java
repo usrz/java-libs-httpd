@@ -22,8 +22,8 @@ import javax.net.ssl.SSLContext;
 
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;

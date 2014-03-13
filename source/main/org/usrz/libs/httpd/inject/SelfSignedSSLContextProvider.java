@@ -31,8 +31,8 @@ import org.usrz.libs.crypto.cert.X500PrincipalBuilder;
 import org.usrz.libs.crypto.cert.X509CertificateBuilder;
 import org.usrz.libs.crypto.cert.X509CertificateBuilder.Mode;
 import org.usrz.libs.crypto.utils.KeyPairBuilder;
-import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;

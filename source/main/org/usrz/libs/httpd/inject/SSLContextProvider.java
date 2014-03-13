@@ -28,8 +28,8 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.usrz.libs.httpd.configurations.Configurations;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
