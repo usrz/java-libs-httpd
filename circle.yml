@@ -1,0 +1,21 @@
+checkout:
+  post:
+    - git submodule sync
+    - git submodule update --init
+dependencies:
+  override:
+    - ant resolve -Divy.useCacheOnly=false
+  cache_directories:
+    - ~/.ivycache-usrz
+test:
+  override:
+    - ant test -Divy.useCacheOnly=true
+deployment:
+  release:
+    branch: release
+    commands:
+      - ant publish
+          -Dtask.executed.test=true
+          -Divy.useCacheOnly=true
+          -Divy.status=release
+      - (cd target/publications && scp -r . circleci@dev.usrz.com:releases)
