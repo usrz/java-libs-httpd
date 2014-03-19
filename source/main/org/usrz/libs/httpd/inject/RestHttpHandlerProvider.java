@@ -37,12 +37,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
 import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
 import org.usrz.libs.logging.Log;
-import org.usrz.libs.utils.configurations.Configurations;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.jaxrs.cfg.Annotations;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.google.inject.Inject;
@@ -79,14 +75,12 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
         if (applicationName == null) throw new NullPointerException("Null application name");
         config = new ResourceConfig();
         config.setApplicationName(applicationName);
-
-
     }
 
     /* ====================================================================== */
 
     @Inject
-    private void init(Injector injector, Configurations configurations) {
+    private void init(Injector injector, ObjectMapper mapper) {
         /* Remember our injector */
         this.injector = injector;
 
@@ -94,13 +88,8 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
         final Map<Class<?>, Integer> contractPriorities = new HashMap<>();
         contractPriorities.put(MessageBodyWriter.class, Integer.MIN_VALUE);
         contractPriorities.put(MessageBodyReader.class, Integer.MIN_VALUE);
-        config.register(new JacksonJsonProvider(new ObjectMapper()
-                                .configure(SerializationFeature.INDENT_OUTPUT,             configurations.get("json.indent", false))
-                                .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, configurations.get("json.use_timestamps", true))
-                                .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, configurations.get("json.order_keys", true))
-                                .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY,   configurations.get("json.order_keys", true))
-                                .setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES),
-                            new Annotations[] { Annotations.JACKSON, Annotations.JAXB }),
+        config.register(new JacksonJsonProvider(mapper,
+                    new Annotations[] { Annotations.JACKSON, Annotations.JAXB }),
                     Collections.unmodifiableMap(contractPriorities));
 
         /* Configure all the rest */
