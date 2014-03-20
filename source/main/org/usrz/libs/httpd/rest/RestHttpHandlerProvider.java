@@ -28,14 +28,11 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainerProvider;
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.glassfish.jersey.server.ContainerException;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
-import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,10 +40,8 @@ import com.fasterxml.jackson.jaxrs.cfg.Annotations;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import com.google.inject.Key;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
-import com.google.inject.TypeLiteral;
 
 /**
  * A {@link Provider} working in conjunction with
@@ -62,8 +57,8 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
     /* Our Log instance */
     private static final Log log = new Log();
 
-    /* Our Jersey ResourceConfig */
-    private final ResourceConfig config;
+    /** Jersey's {@link ResourceConfig} for non-trivial customization */
+    protected final ResourceConfig config;
     /* Our Guice Injector */
     private Injector injector = null;
 
@@ -101,47 +96,10 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
     /**
      * Register the specified {@link Class} and make it available to the
      * <em>JAX-RS</em> {@link Application}.
-     *
-     * <p>If the specified class is annotated with the
-     * {@link com.google.inject.Singleton} annotation, or is already present
-     * in Guice's {@linkplain Injector#getExistingBinding(Key) bindings},
-     * its instance will be passed to the <em>JAX-RS</em> {@link Application}
-     * as a {@linkplain Application#getSingletons() singleton}.</p>
-     *
-     * <p>In all other cases, the class will be simply passed to the
-     * {@link Application} {@linkplain Application#getClass() normally}.</p>
      */
     protected final RestHttpHandlerProvider register(Class<?> clazz) {
         if (clazz == null) throw new NullPointerException("Null class");
-        final Key<?> key = Key.get(clazz);
-        if (injector.getExistingBinding(key) != null) {
-            return this.register(key);
-        } else if (clazz.getAnnotation(com.google.inject.Singleton.class) != null) {
-            return this.register(key);
-        } else {
-            config.register(clazz);
-            return this;
-        }
-    }
-
-    /**
-     * Register the specified Guice {@link TypeLiteral} and make it
-     * available to the <em>JAX-RS</em> {@link Application} as a
-     * {@linkplain Application#getSingletons() singleton}
-     */
-    protected final RestHttpHandlerProvider register(TypeLiteral<?> type) {
-        if (type == null) throw new NullPointerException("Null type");
-        return this.register(Key.get(type));
-    }
-
-    /**
-     * Register the specified Guice {@link Key} and make it
-     * available to the <em>JAX-RS</em> {@link Application} as a
-     * {@linkplain Application#getSingletons() singleton}
-     */
-    protected final RestHttpHandlerProvider register(Key<?> key) {
-        if (key == null) throw new NullPointerException("Null key");
-        config.register(injector.getInstance(key));
+        config.register(clazz);
         return this;
     }
 
@@ -180,15 +138,8 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
         if (injector == null) throw new IllegalStateException("No injector");
 
         /* Create a new ApplicationHandler from Jersey */
-        final ApplicationHandler handler = new ApplicationHandler(config);
+        return new Handler(new ApplicationHandler(config, new GuiceBinder(injector)));
 
-        /* Setup a Guice bridge to this Jersey instance */
-        final ServiceLocator locator = handler.getServiceLocator();
-        GuiceBridge.getGuiceBridge().initializeGuiceBridge(locator);
-        locator.getService(GuiceIntoHK2Bridge.class).bridgeGuiceInjector(injector);
-
-        /* Finalize and return our handler */
-        return new Handler(handler);
     }
 
     /* ====================================================================== */
