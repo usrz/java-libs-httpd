@@ -17,5 +17,5 @@ deployment:
       - ant publish
           -Dtask.executed.test=true
           -Divy.useCacheOnly=true
-          -Divy.status=release
+          -Divy.buildNumber=${CIRCLE_BUILD_NUM}
       - (cd target/publications && scp -r . circleci@dev.usrz.com:releases)
