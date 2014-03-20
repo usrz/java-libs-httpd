@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.inject.Singleton;
+
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -32,9 +34,9 @@ import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.Singleton;
 
 @Singleton
+@SuppressWarnings("restriction")
 public class HttpServerProvider implements Provider<HttpServer >{
 
     private final static Log log = new Log();
@@ -55,7 +57,7 @@ public class HttpServerProvider implements Provider<HttpServer >{
         this.configurations = configurations;
     }
 
-    @Inject(optional = true)
+    @Inject(optional=true)
     protected final void setDefaultErrorPageGenerator(ErrorPageGenerator defaultErrorPageGenerator) {
         this.defaultErrorPageGenerator = defaultErrorPageGenerator;
     }

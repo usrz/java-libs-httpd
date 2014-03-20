@@ -18,6 +18,7 @@ package org.usrz.libs.httpd.inject;
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_HOST;
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_PORT;
 
+import javax.inject.Inject;
 import javax.net.ssl.SSLContext;
 
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -25,7 +26,6 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.usrz.libs.logging.Log;
 import org.usrz.libs.utils.configurations.Configurations;
 
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 
 public class NetworkListenerFactory {

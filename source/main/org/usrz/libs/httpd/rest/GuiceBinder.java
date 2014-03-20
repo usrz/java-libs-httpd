@@ -36,6 +36,7 @@ public class GuiceBinder extends AbstractBinder {
     }
 
     @Override
+    @SuppressWarnings("restriction")
     protected void configure() {
         for (Key<?> key: injector.getAllBindings().keySet()) {
 

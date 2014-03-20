@@ -21,11 +21,12 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS;
 import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 
+import javax.inject.Inject;
+
 import org.usrz.libs.logging.Log;
 import org.usrz.libs.utils.configurations.Configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 public class ObjectMapperProvider implements Provider<ObjectMapper> {
