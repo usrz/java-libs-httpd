@@ -30,11 +30,15 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainerProvider;
+import org.glassfish.jersey.internal.inject.Injections;
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.glassfish.jersey.server.ContainerException;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
+import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +56,7 @@ import com.google.inject.Provider;
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
 @Singleton
-public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
+public abstract class HttpHandlerProvider implements Provider<HttpHandler> {
 
     /* Our Log instance */
     private static final Log log = new Log();
@@ -63,10 +67,10 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
     private Injector injector = null;
 
     /**
-     * Create a new {@link RestHttpHandlerProvider} instance specifying the
+     * Create a new {@link HttpHandlerProvider} instance specifying the
      * underlying application <em>name</em>
      */
-    protected RestHttpHandlerProvider(String applicationName) {
+    protected HttpHandlerProvider(String applicationName) {
         if (applicationName == null) throw new NullPointerException("Null application name");
         config = new ResourceConfig();
         config.setApplicationName(applicationName);
@@ -97,7 +101,7 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
      * Register the specified {@link Class} and make it available to the
      * <em>JAX-RS</em> {@link Application}.
      */
-    protected final RestHttpHandlerProvider register(Class<?> clazz) {
+    protected final HttpHandlerProvider register(Class<?> clazz) {
         if (clazz == null) throw new NullPointerException("Null class");
         config.register(clazz);
         return this;
@@ -108,7 +112,7 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
      * available to the <em>JAX-RS</em> {@link Application} as a
      * {@linkplain Application#getSingletons() singleton}
      */
-    protected final RestHttpHandlerProvider register(Object object) {
+    protected final HttpHandlerProvider register(Object object) {
         config.register(object);
         return this;
     }
@@ -116,7 +120,7 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
     /* ====================================================================== */
 
     /**
-     * Concrete implementations of {@link RestHttpHandlerProvider} must override
+     * Concrete implementations of {@link HttpHandlerProvider} must override
      * this method to configure the <em>JAX-RS</em> {@link Application}.
      *
      * <p>Implementations should call the <code>register(&hellip;)</code>
@@ -137,8 +141,13 @@ public abstract class RestHttpHandlerProvider implements Provider<HttpHandler> {
         /* Check that an injector was properly provided to us */
         if (injector == null) throw new IllegalStateException("No injector");
 
-        /* Create a new ApplicationHandler from Jersey */
-        return new Handler(new ApplicationHandler(config, new GuiceBinder(injector)));
+        /* Create a new ServiceLocator parent linked to Guice */
+        final ServiceLocator locator = Injections.createLocator();
+        GuiceBridge.getGuiceBridge().initializeGuiceBridge(locator);
+        locator.getService(GuiceIntoHK2Bridge.class).bridgeGuiceInjector(injector);
+
+        /* Return a new Grizzly handler from Jersey's ApplicationHandler */
+        return new Handler(new ApplicationHandler(config, null, locator));
 
     }
 
