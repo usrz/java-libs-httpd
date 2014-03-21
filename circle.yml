@@ -1,12 +1,23 @@
+machine:
+  environment:
+    JAVA_URL: "http://dev.usrz.com/jdk-8-minimal.tar.bz2"
+    JAVA_HOME: "${HOME}/jdk1.8.0"
+    PATH: "${JAVA_HOME}/bin:${JAVA_HOME}/jre/bin:${PATH}"
 checkout:
   post:
     - git submodule sync
     - git submodule update --init
 dependencies:
   override:
+    - if test ! -d "${JAVA_HOME}" ; then
+          mkdir "${JAVA_HOME}" ;
+          curl --silent "${JAVA_URL}" | 
+            tar -C "${JAVA_HOME}" -jxvf - ;
+        fi
     - ant resolve -Divy.useCacheOnly=false
   cache_directories:
     - ~/.ivycache-usrz
+    - ~/jdk1.8.0
 test:
   override:
     - ant test -Divy.useCacheOnly=true
@@ -19,5 +30,5 @@ deployment:
       - ant publish
           -Dtask.executed.test=true
           -Divy.useCacheOnly=true
-          -Divy.buildNumber=${CIRCLE_BUILD_NUM}
+          -Divy.buildNumber="${CIRCLE_BUILD_NUM}"
       - (cd target/publications && scp -r . circleci@dev.usrz.com:releases)
