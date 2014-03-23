@@ -43,7 +43,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  * {@linkplain #ApacheLogFormat(String) construction} should be composed of
  * these tokens:</p>
  *
- * <table>
+ * <table summary="Format specifiers">
  * <tr><th><code>%%</code></th>
  *     <td>The literal percent sign (can also be escaped with back-slash, like "<code>\%</code>"</td></tr>
  * <tr><th><code>%a</code></th>
@@ -95,10 +95,10 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  *     <td>The time taken to serve the request, in seconds</td></tr>
  * <tr><th><code>%{...}T</code></th>
  *     <td>The time taken to serve the request. The parameter can be a time unit like:
- *         <ul><li>"<code>n</code>",  "<code>nano<em>[s]<em></code>",  "<code>nanosec<em>[s]<em></code>",  "<code>nanosecond<em>[s]<em></code>"</li>
- *             <li>                  "<code>micro<em>[s]<em></code>", "<code>microsec<em>[s]<em></code>", "<code>microsecond<em>[s]<em></code>"</li>
- *             <li>"<code>m</code>", "<code>milli<em>[s]<em></code>", "<code>millisec<em>[s]<em></code>", "<code>millisecond<em>[s]<em></code>"</li>
- *             <li>"<code>s</code>",                                       "<code>sec<em>[s]<em></code>",      "<code>second<em>[s]<em></code>"</li></ul></td></tr>
+ *         <ul><li>"<code>n</code>",  "<code>nano<em>[s]</em></code>",  "<code>nanosec<em>[s]</em></code>",  "<code>nanosecond<em>[s]</em></code>"</li>
+ *             <li>                  "<code>micro<em>[s]</em></code>", "<code>microsec<em>[s]</em></code>", "<code>microsecond<em>[s]</em></code>"</li>
+ *             <li>"<code>m</code>", "<code>milli<em>[s]</em></code>", "<code>millisec<em>[s]</em></code>", "<code>millisecond<em>[s]</em></code>"</li>
+ *             <li>"<code>s</code>",                                        "<code>sec<em>[s]</em></code>",      "<code>second<em>[s]</em></code>"</li></ul></td></tr>
  * <tr><th><code>%u</code></th>
  *     <td>The remote user name</td></tr>
  * <tr><th><code>%U</code></th>

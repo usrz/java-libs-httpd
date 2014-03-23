@@ -220,7 +220,7 @@ public class AccessLogBuilder {
      *
      * <p>For example, if the file name specified at
      * {@linkplain #AccessLogBuilder(File) construction} was
-     * <code>access.log</code> and the <em>rotation pattern</code> specified
+     * <code>access.log</code> and the <em>rotation pattern</em> specified
      * here is <code>EEE</code> <em>(day name in week)</em>, files will be
      * archived on a daily basis with names like
      * <code>access-Mon.log</code>, <code>access-Tue.log</code>, ...</p>
@@ -233,7 +233,7 @@ public class AccessLogBuilder {
 
     /**
      * Specify whether access log entries should be written
-     * <en>synchronously</em> or not.
+     * <em>synchronously</em> or not.
      *
      * <p>If <b>false</b> (the default) a {@link QueueingAppender} will be used
      * to enqueue entries and append to the final appenders when possible.</p>

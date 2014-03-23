@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.rest;
+package org.usrz.libs.httpd;
 
 import static com.fasterxml.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY;
 import static com.fasterxml.jackson.databind.PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES;
@@ -24,6 +24,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS
 import javax.inject.Inject;
 
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configuration;
 import org.usrz.libs.utils.configurations.Configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,15 +33,15 @@ import com.google.inject.Provider;
 public class ObjectMapperProvider implements Provider<ObjectMapper> {
 
     private static final Log log = new Log();
-    private Configurations configurations;
+    private Configurations configurations = Configurations.EMPTY_CONFIGURATIONS;
 
     public ObjectMapperProvider() {
         /* Nothing to do */
     }
 
     @Inject
-    public void init(Configurations configurations) {
-        this.configurations = configurations.extract("json");
+    public void init(@Configuration(ObjectMapper.class) Configurations configurations) {
+        this.configurations = configurations;
     }
 
     @Override

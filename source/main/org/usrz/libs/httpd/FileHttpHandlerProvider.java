@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.inject;
+package org.usrz.libs.httpd;
 
 import java.io.File;
 import java.io.IOException;
 
-import javax.inject.Inject;
-
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
-import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Provider;
 import com.google.inject.ProvisionException;
@@ -31,13 +28,9 @@ public class FileHttpHandlerProvider implements Provider<HttpHandler> {
 
     private String documentRoot = null;
 
-    protected FileHttpHandlerProvider() {
-        /* Nothing to do, really */
-    }
-
-    @Inject
-    private void inject(Configurations configurations) {
-        documentRoot = configurations.getString("documentRoot");
+    public FileHttpHandlerProvider(String documentRoot) {
+        if (documentRoot == null) throw new NullPointerException("Null document root");
+        this.documentRoot = documentRoot;
     }
 
     @Override

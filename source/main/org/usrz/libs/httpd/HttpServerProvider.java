@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.inject;
+package org.usrz.libs.httpd;
 
 import java.io.File;
 import java.util.Collection;
@@ -30,6 +30,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.usrz.libs.httpd.accesslog.AccessLogBuilder;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.configurations.Configuration;
 import org.usrz.libs.utils.configurations.Configurations;
 
 import com.google.inject.Inject;
@@ -41,19 +42,19 @@ public class HttpServerProvider implements Provider<HttpServer >{
 
     private final static Log log = new Log();
 
-    private final NetworkListenerFactory networkListenerFactory;
-    private final HttpHandlerMapper httpHandlerFactory;
+    private final Collection<NetworkListener> networkListeners;
+    private final Map<String, HttpHandler> httpHandlers;
     private final Configurations configurations;
     private HttpServer server;
 
     private ErrorPageGenerator defaultErrorPageGenerator;
 
     @Inject
-    protected HttpServerProvider(NetworkListenerFactory networkListenerFactory,
-                                 HttpHandlerMapper httpHandlerFactory,
-                                 Configurations configurations) {
-        this.networkListenerFactory = networkListenerFactory;
-        this.httpHandlerFactory = httpHandlerFactory;
+    protected HttpServerProvider(Collection<NetworkListener> networkListeners,
+                                 Map<String, HttpHandler> httpHandlers,
+                                 @Configuration(HttpServerProvider.class) Configurations configurations) {
+        this.networkListeners = networkListeners;
+        this.httpHandlers = httpHandlers;
         this.configurations = configurations;
     }
 
@@ -102,57 +103,29 @@ public class HttpServerProvider implements Provider<HttpServer >{
             accessLogBuilder.instrument(configuration);
         }
 
-        /* Get all our configured listeners */
-        final Map<String, Configurations> listenersConfigurations = configurations.group("listeners");
-        final Configurations listenerConfiguration = configurations.strip("listener");
-
-        if (!listenersConfigurations.isEmpty()) {
-
-            /*
-             * We have mappings like "listeners.[name].[key] = ...": this means many listeners
-             * need to be configured, add each one of them one by one.
-             */
-            for (final Entry<String, Configurations> entry: listenersConfigurations.entrySet()) {
-                server.addListener(networkListenerFactory.create(entry.getKey(), entry.getValue()));
-            }
-
-        } else if (!listenerConfiguration.isEmpty()){
-
-            /*
-             * If we don't have mappings like "listeners.[name].[key] = ..." simply check
-             * for the single entry "listener.[key] = ...": we might have one listener only
-             */
-            server.addListener(networkListenerFactory.create("!default", listenerConfiguration));
-
-        }
-
-        /* Check that we have some listeners and dump out some informations about them */
-        final Collection<NetworkListener> listeners = server.getListeners();
-        if (listeners.isEmpty()) throw new IllegalStateException("No listeners configured for server \"" + name +"\"");
-        for (NetworkListener listener: listeners) {
+        /* Check that we have some listeners, add them and dump out some informations about them */
+        if (networkListeners.isEmpty()) throw new IllegalStateException("No listeners configured for server \"" + name +"\"");
+        for (NetworkListener listener: networkListeners) {
+            server.addListener(listener);
             log.info("Listener \"%s\" (host=%s, port=%s, secure=%b) configured for server \"%s\"",
                      listener.getName(), listener.getHost(), listener.getPort(), listener.isSecure(), name);
         }
 
         /* Instrument the server configuration with the various contexts */
-        httpHandlerFactory.map(configuration);
-
-        /* Check that we have some handlers and dump out some informations about them */
-        final Map<HttpHandler, String[]> handlers = configuration.getHttpHandlers();
-        if (handlers.isEmpty()) throw new IllegalStateException("No handlers configured for server \"" + name +"\"");
-        for (Map.Entry<HttpHandler, String[]> entry: handlers.entrySet()) {
-            final HttpHandler handler = entry.getKey();
-            for (String path: entry.getValue()) {
-                log.info("Handler \"%s[%s]\" configured at path \"%s\" for server \"%s\"",
-                         handler.getClass().getName(), handler.getName(), path, name);
-            }
+        if (httpHandlers.isEmpty()) throw new IllegalStateException("No handlers configured for server \"" + name +"\"");
+        for (Entry<String, HttpHandler> entry: httpHandlers.entrySet()) {
+            final String path = entry.getKey();
+            final HttpHandler handler = entry.getValue();
+            configuration.addHttpHandler(handler, path);
+            log.info("Handler \"%s[%s]\" configured at path \"%s\" for server \"%s\"",
+                     handler.getClass().getName(), handler.getName(), path, name);
         }
 
         /* If we have a default error page generator ... */
         if (defaultErrorPageGenerator != null)
             configuration.setDefaultErrorPageGenerator(defaultErrorPageGenerator);
 
-        /* Sendible defaults */
+        /* Sensible defaults */
         configuration.setHttpServerName   (configurations.get("server.name",    "Grizzly"));
         configuration.setHttpServerVersion(configurations.get("server.version",  Grizzly.getDotedVersion()));
         configuration.setSendFileEnabled  (configurations.get("server.sendFile", true));

@@ -13,75 +13,26 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.inject;
-
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+package org.usrz.libs.httpd;
 
 import java.lang.annotation.Annotation;
-import java.lang.annotation.Retention;
-import java.util.Set;
-
-import javax.inject.Inject;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.usrz.libs.logging.Log;
 
-import com.google.inject.BindingAnnotation;
-import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.google.inject.TypeLiteral;
+class Handlers {
 
-public class HttpHandlerMapper {
-
-    private static final TypeLiteral<HttpHandler> HTTP_HANDLER_TYPE_LITERAL = TypeLiteral.get(HttpHandler.class);
-    private static final Log log = new Log();
-
-    private final Injector injector;
-
-    @Inject
-    protected HttpHandlerMapper(Injector injector) {
-        this.injector = injector;
-    }
-
-    public ServerConfiguration map(ServerConfiguration configuration) {
-        final Set<Key<?>> keys = injector.getAllBindings().keySet();
-        for (final Key<?> key: keys) {
-            if (HTTP_HANDLER_TYPE_LITERAL.equals(key.getTypeLiteral())) {
-                final Annotation annotation = key.getAnnotation();
-                final String path = annotation instanceof At ? ((At)annotation).path() : "/*";
-                final HttpHandler handler = (HttpHandler) injector.getInstance(key);
-                configuration.addHttpHandler(handler, path);
-                log.debug("Mapped handler \"%s[%s]\" under context path \"%s\"", handler.getClass().getName(), handler.getName(), path);
-            }
-        }
-        return configuration;
-    }
-
-    public static final At at(String path) {
-        return new AtImpl(path);
-    }
-
-    /* ====================================================================== */
-    /* MARKER ANNOTATION AND IMPLEMENTATION                                   */
-    /* ====================================================================== */
-
-    /**
-     * {@link BindingAnnotation} to associate with {@link HttpHandler} instances
-     * in order to mark the deployment path.
-     *
-     * @see HttpHandlerMapper#at(String)
-     * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
-     */
-    @Retention(RUNTIME)
-    @BindingAnnotation
-    public static @interface At {
+    @interface At {
 
         /**
          * The context path where the associated {@link HttpHandler} will be
          * deployed under.
          */
         public String path();
+
+    }
+
+    static final At at(String path) {
+        return new AtImpl(path);
     }
 
     /* ====================================================================== */
@@ -128,4 +79,6 @@ public class HttpHandlerMapper {
             return At.class;
         }
     }
+
+
 }

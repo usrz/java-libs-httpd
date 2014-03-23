@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.rest;
+package org.usrz.libs.httpd;
 
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -56,7 +56,7 @@ import com.google.inject.Provider;
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
 @Singleton
-public abstract class HttpHandlerProvider implements Provider<HttpHandler> {
+public abstract class RestHandlerProvider implements Provider<HttpHandler> {
 
     /* Our Log instance */
     private static final Log log = new Log();
@@ -67,10 +67,10 @@ public abstract class HttpHandlerProvider implements Provider<HttpHandler> {
     private Injector injector = null;
 
     /**
-     * Create a new {@link HttpHandlerProvider} instance specifying the
+     * Create a new {@link RestHandlerProvider} instance specifying the
      * underlying application <em>name</em>
      */
-    protected HttpHandlerProvider(String applicationName) {
+    protected RestHandlerProvider(String applicationName) {
         if (applicationName == null) throw new NullPointerException("Null application name");
         config = new ResourceConfig();
         config.setApplicationName(applicationName);
@@ -101,7 +101,7 @@ public abstract class HttpHandlerProvider implements Provider<HttpHandler> {
      * Register the specified {@link Class} and make it available to the
      * <em>JAX-RS</em> {@link Application}.
      */
-    protected final HttpHandlerProvider register(Class<?> clazz) {
+    protected final RestHandlerProvider register(Class<?> clazz) {
         if (clazz == null) throw new NullPointerException("Null class");
         config.register(clazz);
         return this;
@@ -112,7 +112,7 @@ public abstract class HttpHandlerProvider implements Provider<HttpHandler> {
      * available to the <em>JAX-RS</em> {@link Application} as a
      * {@linkplain Application#getSingletons() singleton}
      */
-    protected final HttpHandlerProvider register(Object object) {
+    protected final RestHandlerProvider register(Object object) {
         config.register(object);
         return this;
     }
@@ -120,7 +120,7 @@ public abstract class HttpHandlerProvider implements Provider<HttpHandler> {
     /* ====================================================================== */
 
     /**
-     * Concrete implementations of {@link HttpHandlerProvider} must override
+     * Concrete implementations of {@link RestHandlerProvider} must override
      * this method to configure the <em>JAX-RS</em> {@link Application}.
      *
      * <p>Implementations should call the <code>register(&hellip;)</code>
