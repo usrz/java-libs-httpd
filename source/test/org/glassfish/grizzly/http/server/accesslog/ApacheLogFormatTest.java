@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -31,6 +31,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.accesslog.ApacheLogFormat;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.mockito.Mockito;
 import org.mockito.internal.stubbing.answers.ThrowsException;

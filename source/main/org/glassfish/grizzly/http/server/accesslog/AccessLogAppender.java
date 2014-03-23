@@ -13,46 +13,32 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
-import java.util.logging.Logger;
-
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.HttpServer;
 
 /**
- * An {@link AccessLogAppender appender} writing log entries to {@link File}s.
+ * An interface defining an <em>appender</em> for Grizzly access logs entries.
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
-public class FileAppender extends StreamAppender {
-
-    private static final Logger LOGGER = Grizzly.logger(HttpServer.class);
+public interface AccessLogAppender extends Closeable {
 
     /**
-     * Create a new {@link FileAppender} <em>appending to</em> (and not
-     * overwriting) the specified {@link File}.
+     * Append the specified access log entry.
      *
-     * @throws IOException If an I/O error occurred opening the file.
+     * @param accessLogEntry The {@link String} value of the data to be append
+     *                       in the access log.
+     * @throws IOException If an I/O error occurred appending to the log.
      */
-    public FileAppender(File file)
-    throws IOException {
-        this(file, true);
-    }
+    public void append(String accessLogEntry)
+    throws IOException;
 
     /**
-     * Create a new {@link FileAppender} writing to the specified {@link File}.
-     *
-     * @param append If <b>true</b> the file will be <em>appended to</em>,
-     *               otherwise it will be completely <em>overwritten</em>.
-     * @throws IOException If an I/O error occurred opening the file.
+     * Close any underlying resource owned by this appender.
      */
-    public FileAppender(File file, boolean append)
-    throws IOException {
-        super(new FileOutputStream(file, append));
-        LOGGER.info("Access log file \"" + file.getAbsolutePath() + "\" opened");
-    }
+    @Override
+    public void close()
+    throws IOException;
 }

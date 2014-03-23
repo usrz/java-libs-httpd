@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;

@@ -28,7 +28,7 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.usrz.libs.httpd.accesslog.AccessLogBuilder;
+import org.glassfish.grizzly.http.server.accesslog.AccessLogBuilder;
 import org.usrz.libs.logging.Log;
 import org.usrz.libs.utils.configurations.Configuration;
 import org.usrz.libs.utils.configurations.Configurations;

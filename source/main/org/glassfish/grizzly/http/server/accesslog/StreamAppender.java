@@ -13,28 +13,51 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
-import java.text.SimpleDateFormat;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 
 /**
- * Simple utility class to keep pre-configured {@link SimpleDateFormat}s around
- * on a per-{@link Thread} basis. The {@link SimpleDateFormat#clone() clone()}
- * method will be used to generate new instances.
+ * An {@link AccessLogAppender appender} writing log entries to an
+ * {@link OutputStream}.
+ *
+ * <p>Log entries will <b>always</b> encoded in <em>UTF-8</em>.
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
-class SimpleDateFormatThreadLocal extends ThreadLocal<SimpleDateFormat> {
+public class StreamAppender implements AccessLogAppender {
 
-    private final SimpleDateFormat format;
+    /* Line separator for entries, respect Windoshhhh */
+    private static final String LINE_SEPARATOR = System.getProperty("line.separator");
+    /* The writer we'll actually use */
+    private final Writer writer;
 
-    SimpleDateFormatThreadLocal(String format) {
-        this.format = new SimpleDateFormat(format);
+    /**
+     * Create a new {@link StreamAppender} instance writing log entries to the
+     * specified {@link OutputStream}.
+     */
+    public StreamAppender(OutputStream  output) {
+        writer = new OutputStreamWriter(output, Charset.forName("UTF-8"));
     }
 
     @Override
-    protected SimpleDateFormat initialValue() {
-        return (SimpleDateFormat) format.clone();
+    public void append(String accessLogEntry)
+    throws IOException {
+        synchronized(this) {
+            writer.write(accessLogEntry);
+            writer.write(LINE_SEPARATOR);
+            writer.flush();
+        }
+    }
+
+    @Override
+    public void close()
+    throws IOException {
+        writer.close();
     }
 
 }

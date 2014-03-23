@@ -13,51 +13,46 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.Charset;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.server.HttpServer;
 
 /**
- * An {@link AccessLogAppender appender} writing log entries to an
- * {@link OutputStream}.
- *
- * <p>Log entries will <b>always</b> encoded in <em>UTF-8</em>.
+ * An {@link AccessLogAppender appender} writing log entries to {@link File}s.
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
-public class StreamAppender implements AccessLogAppender {
+public class FileAppender extends StreamAppender {
 
-    /* Line separator for entries, respect Windoshhhh */
-    private static final String LINE_SEPARATOR = System.getProperty("line.separator");
-    /* The writer we'll actually use */
-    private final Writer writer;
+    private static final Logger LOGGER = Grizzly.logger(HttpServer.class);
 
     /**
-     * Create a new {@link StreamAppender} instance writing log entries to the
-     * specified {@link OutputStream}.
+     * Create a new {@link FileAppender} <em>appending to</em> (and not
+     * overwriting) the specified {@link File}.
+     *
+     * @throws IOException If an I/O error occurred opening the file.
      */
-    public StreamAppender(OutputStream  output) {
-        writer = new OutputStreamWriter(output, Charset.forName("UTF-8"));
-    }
-
-    @Override
-    public void append(String accessLogEntry)
+    public FileAppender(File file)
     throws IOException {
-        synchronized(this) {
-            writer.write(accessLogEntry);
-            writer.write(LINE_SEPARATOR);
-            writer.flush();
-        }
+        this(file, true);
     }
 
-    @Override
-    public void close()
+    /**
+     * Create a new {@link FileAppender} writing to the specified {@link File}.
+     *
+     * @param append If <b>true</b> the file will be <em>appended to</em>,
+     *               otherwise it will be completely <em>overwritten</em>.
+     * @throws IOException If an I/O error occurred opening the file.
+     */
+    public FileAppender(File file, boolean append)
     throws IOException {
-        writer.close();
+        super(new FileOutputStream(file, append));
+        LOGGER.info("Access log file \"" + file.getAbsolutePath() + "\" opened");
     }
-
 }

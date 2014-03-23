@@ -13,31 +13,28 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
-import java.util.Date;
-
-import org.glassfish.grizzly.http.server.Response;
+import java.text.SimpleDateFormat;
 
 /**
- * An interface defining a component capable of formatting {@link Response}s
- * into printable <em>access log entries</em>.
- *
- * <p>Implementations of this class <b>must</b> be thread-safe.</p>
+ * Simple utility class to keep pre-configured {@link SimpleDateFormat}s around
+ * on a per-{@link Thread} basis. The {@link SimpleDateFormat#clone() clone()}
+ * method will be used to generate new instances.
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
-public interface AccessLogFormat {
+class SimpleDateFormatThreadLocal extends ThreadLocal<SimpleDateFormat> {
 
-    /**
-     * Format the data contained in the specified {@link Response} and return
-     * a {@link String} which can be appended to an access log file.
-     *
-     * @param response The {@link Response} holding the data to format.
-     * @param timeStamp The {@link Date} at which the request was originated.
-     * @param responseNanos The time, in nanoseconds, the {@link Response}
-     *                      took to complete.
-     */
-    public String format(Response response, Date timeStamp, long responseNanos);
+    private final SimpleDateFormat format;
+
+    SimpleDateFormatThreadLocal(String format) {
+        this.format = new SimpleDateFormat(format);
+    }
+
+    @Override
+    protected SimpleDateFormat initialValue() {
+        return (SimpleDateFormat) format.clone();
+    }
 
 }

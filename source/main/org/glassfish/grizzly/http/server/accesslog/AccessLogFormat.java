@@ -13,32 +13,31 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.accesslog;
+package org.glassfish.grizzly.http.server.accesslog;
 
-import java.io.Closeable;
-import java.io.IOException;
+import java.util.Date;
+
+import org.glassfish.grizzly.http.server.Response;
 
 /**
- * An interface defining an <em>appender</em> for Grizzly access logs entries.
+ * An interface defining a component capable of formatting {@link Response}s
+ * into printable <em>access log entries</em>.
+ *
+ * <p>Implementations of this class <b>must</b> be thread-safe.</p>
  *
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
-public interface AccessLogAppender extends Closeable {
+public interface AccessLogFormat {
 
     /**
-     * Append the specified access log entry.
+     * Format the data contained in the specified {@link Response} and return
+     * a {@link String} which can be appended to an access log file.
      *
-     * @param accessLogEntry The {@link String} value of the data to be append
-     *                       in the access log.
-     * @throws IOException If an I/O error occurred appending to the log.
+     * @param response The {@link Response} holding the data to format.
+     * @param timeStamp The {@link Date} at which the request was originated.
+     * @param responseNanos The time, in nanoseconds, the {@link Response}
+     *                      took to complete.
      */
-    public void append(String accessLogEntry)
-    throws IOException;
+    public String format(Response response, Date timeStamp, long responseNanos);
 
-    /**
-     * Close any underlying resource owned by this appender.
-     */
-    @Override
-    public void close()
-    throws IOException;
 }
