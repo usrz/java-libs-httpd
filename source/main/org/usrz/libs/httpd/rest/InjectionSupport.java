@@ -13,35 +13,31 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd;
+package org.usrz.libs.httpd.rest;
 
-import java.io.File;
-import java.io.IOException;
+import java.util.function.Consumer;
 
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.internal.inject.Injections;
 
-import com.google.inject.Provider;
-import com.google.inject.ProvisionException;
+public interface InjectionSupport {
 
-public class FileHttpHandlerProvider implements Provider<HttpHandler> {
+    public ServiceLocator getServiceLocator();
 
-    private String documentRoot = null;
-
-    public FileHttpHandlerProvider(String documentRoot) {
-        if (documentRoot == null) throw new NullPointerException("Null document root");
-        this.documentRoot = documentRoot;
+    default <R> R inject(Class<R> resourceClass) {
+        return Injections.getOrCreate(getServiceLocator(), resourceClass);
     }
 
-    @Override
-    public HttpHandler get() {
-        if (documentRoot == null) throw new ProvisionException("Configuration \"documentRoot\" not specified");
-        try {
-            final File directory = new File(documentRoot).getCanonicalFile();
-            if (directory.isDirectory()) return new StaticHttpHandler(directory.getAbsolutePath());
-            throw new ProvisionException("Document root \"" + directory + "\" is not a directory");
-        } catch (IOException exception) {
-            throw new ProvisionException("I/O error resolving document root \"" + documentRoot + "\"", exception);
-        }
+    default <R> R inject(Class<R> resourceClass, Consumer<AbstractBinder> function) {
+        final AbstractBinder binder = new AbstractBinder() {
+            @Override
+            protected void configure() {
+                function.accept(this);
+            }
+        };
+        final ServiceLocator childLocator = Injections.createLocator(getServiceLocator(), binder);
+        return Injections.getOrCreate(childLocator, resourceClass);
     }
+
 }

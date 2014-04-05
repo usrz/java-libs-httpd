@@ -13,74 +13,49 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd;
+package org.usrz.libs.httpd.inject;
 
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_HOST;
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_PORT;
+import static org.usrz.libs.utils.Check.notNull;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.inject.Singleton;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Provider;
 import javax.net.ssl.SSLContext;
 
+import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.usrz.libs.configurations.Configurations;
+import org.usrz.libs.inject.Optional;
 import org.usrz.libs.logging.Log;
-import org.usrz.libs.utils.configurations.Configuration;
-import org.usrz.libs.utils.configurations.Configurations;
 
-import com.google.inject.Inject;
-import com.google.inject.Provider;
-import com.google.inject.ProvisionException;
+public class NetworkListenerProvider implements Provider<NetworkListener> {
 
-@Singleton
-@SuppressWarnings("restriction")
-public class NetworkListenersProvider implements Provider<Collection<NetworkListener>> {
+    private final Log log = new Log();
+    private final Configurations configurations;
+    private SSLContext context;
+    private HttpServer server;
+    private final String name;
 
-    private static final Log log = new Log();
-    private final Map<String, Configurations> listenersConfigurations = new HashMap<>();
-    private SSLContext sslContext = null;
-
-    @Inject
-    protected NetworkListenersProvider(@Configuration(HttpServerProvider.class) Configurations configurations) {
-        if (configurations == null) throw new NullPointerException("Null configurations");
-
-        /* We might have mappings like "listeners.[name].[key] = ..." */
-        listenersConfigurations.putAll(configurations.group("listeners"));
-
-        /* We might have a single mapping "listeners.[key] = ..." */
-        final Configurations listenerConfiguration = configurations.strip("listener");
-        if (!listenerConfiguration.isEmpty()) {
-            listenersConfigurations.put("!default", listenerConfiguration);
-        }
+    public NetworkListenerProvider(Configurations configurations, Named name) {
+        this.configurations = notNull(configurations, "Null configurations");
+        this.name = notNull(name, "Null name").value();
     }
 
+    @Inject
+    private void setHttpServer(HttpServer server) {
+        this.server = server;
+    }
 
-    @Inject(optional = true)
-    private void setSSLContextFactory(SSLContext sslContext) {
-        this.sslContext = sslContext;
+    @Inject @Optional
+    private void setSSLContext(SSLContext context) {
+        this.context = context;
     }
 
     @Override
-    public Collection<NetworkListener> get() {
-        final List<NetworkListener> listeners = new ArrayList<>();
-
-        for (final Entry<String, Configurations> entry: listenersConfigurations.entrySet()) {
-            listeners.add(create(entry.getKey(), entry.getValue()));
-        }
-
-        return listeners;
-    }
-
-    /* ====================================================================== */
-
-    private NetworkListener create(String name, Configurations configurations) {
+    public NetworkListener get() {
         final String  listenerName =   configurations.get("name", name);
         final String  host =           configurations.get("host", DEFAULT_NETWORK_HOST);
         final int     port =           configurations.get("port", DEFAULT_NETWORK_PORT);
@@ -91,17 +66,17 @@ public class NetworkListenersProvider implements Provider<Collection<NetworkList
         final NetworkListener listener = new NetworkListener(listenerName, host, port);
         listener.setUriEncoding("UTF-8");
 
-        if (secure) try {
-            if (sslContext == null) sslContext = SSLContext.getDefault();
+        if (secure) {
+            final SSLContext sslContext = notNull(context, "SSL context not bound");
             final SSLEngineConfigurator sslConfigurator = new SSLEngineConfigurator(sslContext);
             sslConfigurator.setClientMode(false);
             sslConfigurator.setWantClientAuth(wantClientAuth);
             sslConfigurator.setNeedClientAuth(needClientAuth);
             listener.setSSLEngineConfig(sslConfigurator);
             listener.setSecure(true);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new ProvisionException("Unable to create default SSL context", exception);
         }
+
+        notNull(server, "HTTP server not bound").addListener(listener);
 
         log.debug("Created \"%s\" listener bound to %s on port %d (secure=%b)", listenerName, host, port, secure);
         return listener;

@@ -21,11 +21,8 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS;
 import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 
-import javax.inject.Inject;
-
+import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
-import org.usrz.libs.utils.configurations.Configuration;
-import org.usrz.libs.utils.configurations.Configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Provider;
@@ -33,14 +30,9 @@ import com.google.inject.Provider;
 public class ObjectMapperProvider implements Provider<ObjectMapper> {
 
     private static final Log log = new Log();
-    private Configurations configurations = Configurations.EMPTY_CONFIGURATIONS;
+    private final Configurations configurations;
 
-    public ObjectMapperProvider() {
-        /* Nothing to do */
-    }
-
-    @Inject
-    public void init(@Configuration(ObjectMapper.class) Configurations configurations) {
+    public ObjectMapperProvider(Configurations configurations) {
         this.configurations = configurations;
     }
 
@@ -48,10 +40,10 @@ public class ObjectMapperProvider implements Provider<ObjectMapper> {
     public ObjectMapper get() {
         log.debug("Constructing new ObjectMapper instance");
         return new ObjectMapper()
-                     .configure(INDENT_OUTPUT,                  configurations.get("json.indent", false))
-                     .configure(WRITE_DATES_AS_TIMESTAMPS,      configurations.get("json.use_timestamps", true))
-                     .configure(ORDER_MAP_ENTRIES_BY_KEYS,      configurations.get("json.order_keys", true))
-                     .configure(SORT_PROPERTIES_ALPHABETICALLY, configurations.get("json.order_keys", true))
+                     .configure(INDENT_OUTPUT,                  configurations.get("indent", false))
+                     .configure(WRITE_DATES_AS_TIMESTAMPS,      configurations.get("useTimestamps", true))
+                     .configure(ORDER_MAP_ENTRIES_BY_KEYS,      configurations.get("orderKeys", true))
+                     .configure(SORT_PROPERTIES_ALPHABETICALLY, configurations.get("orderKeys", true))
                      .setPropertyNamingStrategy(CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
     }
 }

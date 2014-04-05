@@ -15,18 +15,19 @@
  * ========================================================================== */
 package org.usrz.libs.httpd;
 
+import static org.usrz.libs.utils.Check.notNull;
+
 import java.io.IOException;
+import java.util.function.Consumer;
 
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.usrz.libs.configurations.CommandLineConfigurations;
+import org.usrz.libs.configurations.Configurations;
+import org.usrz.libs.inject.Injector;
 import org.usrz.libs.logging.Log;
 import org.usrz.libs.logging.Logging;
-import org.usrz.libs.utils.configurations.CommandLineConfigurations;
-import org.usrz.libs.utils.configurations.Configurations;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-
-public abstract class ServerStarter extends ServerModule {
+public abstract class ServerStarter {
 
     static { Logging.init(); }
 
@@ -38,14 +39,16 @@ public abstract class ServerStarter extends ServerModule {
     }
 
     private ServerStarter(Configurations configurations) {
-        super(configurations.strip("server"));
         this.configurations = configurations;
     }
 
-    public final void start() {
+    public final void start(Consumer<ServerBuilder> consumer) {
+        notNull(consumer, "Null ServerBuilder consumer");
 
         /* Create a new injector with this module */
-        final Injector injector = Guice.createInjector(this);
+        final Injector injector = Injector.create((binder) -> {
+            if (consumer != null) consumer.accept(new ServerBuilder(binder));
+        });
 
         /* Get a hold on our HttpServer instance */
         final HttpServer server = injector.getInstance(HttpServer.class);
