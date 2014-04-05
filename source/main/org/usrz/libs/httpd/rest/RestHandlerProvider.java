@@ -15,12 +15,16 @@
  * ========================================================================== */
 package org.usrz.libs.httpd.rest;
 
+import static org.usrz.libs.utils.Check.notNull;
+
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.MessageBodyReader;
@@ -30,22 +34,25 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainerProvider;
 import org.glassfish.jersey.internal.inject.Injections;
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.glassfish.jersey.server.ContainerException;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
-import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
+import org.usrz.libs.httpd.inject.HttpHandlerPath;
+import org.usrz.libs.inject.Injector;
+import org.usrz.libs.inject.Key;
+import org.usrz.libs.inject.Optional;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.cfg.Annotations;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
-import com.google.inject.Injector;
-import com.google.inject.Provider;
+
 
 /**
  * A {@link Provider} working in conjunction with
@@ -56,33 +63,34 @@ import com.google.inject.Provider;
  * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
  */
 @Singleton
-public abstract class RestHandlerProvider implements Provider<HttpHandler> {
+public class RestHandlerProvider implements Provider<HttpHandler> {
 
     /* Our Log instance */
     private static final Log log = new Log();
 
     /** Jersey's {@link ResourceConfig} for non-trivial customization */
     protected final ResourceConfig config;
-    /* Our Guice Injector */
+    /* Our Injector */
     private Injector injector = null;
 
     /**
      * Create a new {@link RestHandlerProvider} instance specifying the
      * underlying application <em>name</em>
      */
-    protected RestHandlerProvider(String applicationName) {
-        if (applicationName == null) throw new NullPointerException("Null application name");
+    public RestHandlerProvider(Consumer<ResourceConfig> consumer, HttpHandlerPath path) {
         config = new ResourceConfig();
-        config.setApplicationName(applicationName);
+        notNull(consumer).accept(config);
     }
 
     /* ====================================================================== */
 
     @Inject
-    private void init(Injector injector, ObjectMapper mapper) {
-        /* Remember our injector */
+    private void setInjector(Injector injector) {
         this.injector = injector;
+    }
 
+    @Inject @Optional
+    private void setObjectMapper(ObjectMapper mapper) {
         /* Setup Jackson as our JSON serializer/deserializer */
         final Map<Class<?>, Integer> contractPriorities = new HashMap<>();
         contractPriorities.put(MessageBodyWriter.class, Integer.MIN_VALUE);
@@ -93,44 +101,7 @@ public abstract class RestHandlerProvider implements Provider<HttpHandler> {
 
         /* Setup our JSONP body writer */
         config.register(JSONPBodyWriter.class);
-
-        /* Configure all the rest */
-        configure();
     }
-
-    /* ====================================================================== */
-
-    /**
-     * Register the specified {@link Class} and make it available to the
-     * <em>JAX-RS</em> {@link Application}.
-     */
-    protected final RestHandlerProvider register(Class<?> clazz) {
-        if (clazz == null) throw new NullPointerException("Null class");
-        config.register(clazz);
-        return this;
-    }
-
-    /**
-     * Register the specified {@link Object} instance and make it
-     * available to the <em>JAX-RS</em> {@link Application} as a
-     * {@linkplain Application#getSingletons() singleton}
-     */
-    protected final RestHandlerProvider register(Object object) {
-        config.register(object);
-        return this;
-    }
-
-    /* ====================================================================== */
-
-    /**
-     * Concrete implementations of {@link RestHandlerProvider} must override
-     * this method to configure the <em>JAX-RS</em> {@link Application}.
-     *
-     * <p>Implementations should call the <code>register(&hellip;)</code>
-     * methods in order to register classes and objects that are to be made
-     * available to the <em>JAX-RS</em> {@link Application}.</p>
-     */
-    protected abstract void configure();
 
     /* ====================================================================== */
 
@@ -140,18 +111,28 @@ public abstract class RestHandlerProvider implements Provider<HttpHandler> {
      */
     @Override
     public final HttpHandler get() {
-
-        /* Check that an injector was properly provided to us */
-        if (injector == null) throw new IllegalStateException("No injector");
+        notNull(injector, "Injector not available");
 
         /* Create a new ServiceLocator parent linked to Guice */
-        final ServiceLocator locator = Injections.createLocator();
-        GuiceBridge.getGuiceBridge().initializeGuiceBridge(locator);
-        locator.getService(GuiceIntoHK2Bridge.class).bridgeGuiceInjector(injector);
+        final ServiceLocator locator = Injections.createLocator(new AbstractBinder() {
+            @Override protected void configure() {
+                injector.getBoundKeys(true, true).forEach((key) -> {
+                    this.bindFactory(factory(injector, key))
+                        .qualifiedBy(key.getAnnotation())
+                        .to(key.getTypeLiteral().getType());
+            });
+        }});
 
         /* Return a new Grizzly handler from Jersey's ApplicationHandler */
         return new Handler(new ApplicationHandler(config, null, locator));
 
+    }
+
+    private static <T> Factory<T> factory(Injector injector, Key<T> key) {
+        return new Factory<T>() {
+            @Override public T provide() { return injector.getInstance(key); }
+            @Override public void dispose(T instance) { }
+        };
     }
 
     /* ====================================================================== */

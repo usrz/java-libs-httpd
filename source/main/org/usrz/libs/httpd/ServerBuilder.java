@@ -19,22 +19,26 @@ import static org.usrz.libs.httpd.inject.HttpHandlerProvider.handlerPath;
 import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.File;
+import java.util.function.Consumer;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.accesslog.AccessLogProbe;
+import org.glassfish.jersey.server.ResourceConfig;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.httpd.inject.AccessLogProvider;
-import org.usrz.libs.httpd.inject.FileHttpHandlerProvider;
+import org.usrz.libs.httpd.inject.FileHandlerProvider;
 import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.httpd.inject.HttpHandlerProvider;
 import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
+import org.usrz.libs.httpd.rest.RestHandlerProvider;
 import org.usrz.libs.inject.Binder;
 import org.usrz.libs.inject.TypeLiteral;
 import org.usrz.libs.inject.utils.Names;
@@ -107,7 +111,7 @@ public class ServerBuilder {
 
     /* ====================================================================== */
 
-    private void addHandler(HttpHandlerPath path, HttpHandlerProvider provider) {
+    private void addHandler(HttpHandlerPath path, Provider<HttpHandler> provider) {
         binder.bind(HttpHandler.class)
               .with(path)
               .toProvider(provider)
@@ -134,11 +138,18 @@ public class ServerBuilder {
 
     public void serveFiles(String path, File documentRoot) {
         final HttpHandlerPath at = handlerPath(path);
-        this.addHandler(at, new FileHttpHandlerProvider(documentRoot, at));
+        this.addHandler(at, new FileHandlerProvider(documentRoot, at));
     }
 
     public void serveFiles(String path, String documentRoot) {
         this.serveFiles(path, new File(documentRoot));
+    }
+
+    /* ---------------------------------------------------------------------- */
+
+    public void serveRest(String path, Consumer<ResourceConfig> consumer) {
+        final HttpHandlerPath at = handlerPath(path);
+        this.addHandler(at, new RestHandlerProvider(consumer, at));
     }
 
 }

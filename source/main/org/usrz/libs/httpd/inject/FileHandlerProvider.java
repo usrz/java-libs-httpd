@@ -23,9 +23,9 @@ import java.io.IOException;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
-public class FileHttpHandlerProvider extends HttpHandlerProvider {
+public class FileHandlerProvider extends HttpHandlerProvider {
 
-    public FileHttpHandlerProvider(File documentRoot, HttpHandlerPath path) {
+    public FileHandlerProvider(File documentRoot, HttpHandlerPath path) {
         super(create(documentRoot), path);
     }
 
