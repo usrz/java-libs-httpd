@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd;
+package org.usrz.libs.httpd.rest;
 
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -90,6 +90,9 @@ public abstract class RestHandlerProvider implements Provider<HttpHandler> {
         config.register(new JacksonJsonProvider(mapper,
                     new Annotations[] { Annotations.JACKSON, Annotations.JAXB }),
                     Collections.unmodifiableMap(contractPriorities));
+
+        /* Setup our JSONP body writer */
+        config.register(JSONPBodyWriter.class);
 
         /* Configure all the rest */
         configure();

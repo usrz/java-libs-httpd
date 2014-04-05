@@ -16,7 +16,6 @@
 package org.usrz.libs.httpd;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.usrz.libs.logging.Log;
@@ -66,11 +65,7 @@ public abstract class ServerStarter extends ServerModule {
             @Override
             public void run() {
                 log.info("Shutting down server %s", serverName);
-                try {
-                    server.shutdown().get();
-                } catch (InterruptedException | ExecutionException exception) {
-                    log.warn(exception, "Exception shutting down server %s", serverName);
-                }
+                server.shutdown();
             }
         });
 

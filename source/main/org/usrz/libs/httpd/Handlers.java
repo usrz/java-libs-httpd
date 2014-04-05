@@ -15,12 +15,19 @@
  * ========================================================================== */
 package org.usrz.libs.httpd;
 
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Retention;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 
+import com.google.inject.BindingAnnotation;
+
 class Handlers {
 
+    @BindingAnnotation
+    @Retention(RUNTIME)
     @interface At {
 
         /**
