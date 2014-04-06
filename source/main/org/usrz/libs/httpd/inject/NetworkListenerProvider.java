@@ -20,8 +20,8 @@ import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_
 import static org.usrz.libs.utils.Check.notNull;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 import javax.net.ssl.SSLContext;
 
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -31,17 +31,31 @@ import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.inject.Optional;
 import org.usrz.libs.logging.Log;
 
+@Singleton
 public class NetworkListenerProvider implements Provider<NetworkListener> {
 
     private final Log log = new Log();
+
     private final Configurations configurations;
+    private final String name;
+    private final String host;
+    private final int port;
+
     private SSLContext context;
     private HttpServer server;
-    private final String name;
 
-    public NetworkListenerProvider(Configurations configurations, Named name) {
+    public NetworkListenerProvider(Configurations configurations) {
         this.configurations = notNull(configurations, "Null configurations");
-        this.name = notNull(name, "Null name").value();
+
+        host = configurations.get("host", DEFAULT_NETWORK_HOST);
+        port = configurations.get("port", DEFAULT_NETWORK_PORT);
+
+        final String name = configurations.getString("name");
+        this.name = name == null ? host + ":" + port : name;
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Inject
@@ -56,29 +70,32 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
 
     @Override
     public NetworkListener get() {
-        final String  listenerName =   configurations.get("name", name);
-        final String  host =           configurations.get("host", DEFAULT_NETWORK_HOST);
-        final int     port =           configurations.get("port", DEFAULT_NETWORK_PORT);
-        final boolean secure =         configurations.get("secure", false);
-        final boolean wantClientAuth = configurations.get("wantClientAuth", false);
-        final boolean needClientAuth = configurations.get("needClientAuth", false);
 
-        final NetworkListener listener = new NetworkListener(listenerName, host, port);
+        final NetworkListener listener = new NetworkListener(name, host, port);
         listener.setUriEncoding("UTF-8");
 
+        final boolean secure = configurations.get("secure", false);
         if (secure) {
+
+            final boolean wantClientAuth = configurations.get("wantClientAuth", false);
+            final boolean needClientAuth = configurations.get("needClientAuth", false);
+
             final SSLContext sslContext = notNull(context, "SSL context not bound");
             final SSLEngineConfigurator sslConfigurator = new SSLEngineConfigurator(sslContext);
+
             sslConfigurator.setClientMode(false);
             sslConfigurator.setWantClientAuth(wantClientAuth);
             sslConfigurator.setNeedClientAuth(needClientAuth);
+
             listener.setSSLEngineConfig(sslConfigurator);
             listener.setSecure(true);
         }
 
-        notNull(server, "HTTP server not bound").addListener(listener);
+        final HttpServer server = notNull(this.server, "HTTP server not bound");
+        final String name = server.getServerConfiguration().getName();
+        server.addListener(listener);
 
-        log.debug("Created \"%s\" listener bound to %s on port %d (secure=%b)", listenerName, host, port, secure);
+        log.info("Added listener \"%s\" bound to %s:%d (secure=%b) to server \"%s\"", name, host, port, secure, name);
         return listener;
     }
 

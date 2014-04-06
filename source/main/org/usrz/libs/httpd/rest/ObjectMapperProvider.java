@@ -17,14 +17,17 @@ package org.usrz.libs.httpd.rest;
 
 import static com.fasterxml.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY;
 import static com.fasterxml.jackson.databind.PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES;
+import static com.fasterxml.jackson.databind.PropertyNamingStrategy.PASCAL_CASE_TO_CAMEL_CASE;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS;
 import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
+import static org.usrz.libs.utils.Check.notNull;
 
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.google.inject.Provider;
 
 public class ObjectMapperProvider implements Provider<ObjectMapper> {
@@ -33,17 +36,28 @@ public class ObjectMapperProvider implements Provider<ObjectMapper> {
     private final Configurations configurations;
 
     public ObjectMapperProvider(Configurations configurations) {
-        this.configurations = configurations;
+        this.configurations = notNull(configurations);
     }
 
     @Override
     public ObjectMapper get() {
         log.debug("Constructing new ObjectMapper instance");
+
+        final PropertyNamingStrategy strategy;
+        final String naming = configurations.get("field_naming", "underscores");
+        switch (naming.toLowerCase()) {
+            case "underscores": strategy = CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES; break;
+            case "pascal":      strategy = PASCAL_CASE_TO_CAMEL_CASE; break;
+            case "camelcase":   // "default" Java naming?
+            case "camel_case":  strategy = null; break;
+            default: throw new IllegalArgumentException("Invalid value for \"naming\" property \"" + naming + "\"");
+        }
+
         return new ObjectMapper()
                      .configure(INDENT_OUTPUT,                  configurations.get("indent", false))
-                     .configure(WRITE_DATES_AS_TIMESTAMPS,      configurations.get("useTimestamps", true))
-                     .configure(ORDER_MAP_ENTRIES_BY_KEYS,      configurations.get("orderKeys", true))
-                     .configure(SORT_PROPERTIES_ALPHABETICALLY, configurations.get("orderKeys", true))
-                     .setPropertyNamingStrategy(CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+                     .configure(WRITE_DATES_AS_TIMESTAMPS,      configurations.get("use_timestamps", true))
+                     .configure(ORDER_MAP_ENTRIES_BY_KEYS,      configurations.get("order_keys", false))
+                     .configure(SORT_PROPERTIES_ALPHABETICALLY, configurations.get("order_keys", false))
+                     .setPropertyNamingStrategy(strategy);
     }
 }

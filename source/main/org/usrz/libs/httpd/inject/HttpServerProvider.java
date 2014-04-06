@@ -27,15 +27,16 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.inject.Optional;
-
+import org.usrz.libs.logging.Log;
 
 @Singleton
 public class HttpServerProvider implements Provider<HttpServer >{
 
-    private HttpServer server;
+    private final Log log = new Log();
 
     private Configurations configurations = EMPTY_CONFIGURATIONS;
     private ErrorPageGenerator defaultErrorPageGenerator;
+    private HttpServer server;
 
     @Inject
     protected HttpServerProvider() {
@@ -60,20 +61,28 @@ public class HttpServerProvider implements Provider<HttpServer >{
 
         /* Get our configurations */
         final ServerConfiguration configuration = server.getServerConfiguration();
+        configuration.setName(configurations.get("name", "default"));
 
         /* If we have a default error page generator ... */
         if (defaultErrorPageGenerator != null)
             configuration.setDefaultErrorPageGenerator(defaultErrorPageGenerator);
 
         /* Sensible defaults */
-        configuration.setHttpServerName   (configurations.get("name",    "Grizzly"));
+        configuration.setHttpServerName   (configurations.get("server",  "Grizzly"));
         configuration.setHttpServerVersion(configurations.get("version",  Grizzly.getDotedVersion()));
-        configuration.setSendFileEnabled  (configurations.get("sendFile", true));
+        configuration.setSendFileEnabled  (configurations.get("sendfile", true));
 
         /* Even more sensible defaults (non-configurable) */
         configuration.setPassTraceRequest(false);
         configuration.setTraceEnabled(false);
 
+        /* Log something */
+        log.info("Created server %s/%s with name \"%s\"",
+                        configuration.getHttpServerName(),
+                        configuration.getHttpServerVersion(),
+                        configuration.getName());
+
+        /* Done */
         return this.server = server;
     }
 }

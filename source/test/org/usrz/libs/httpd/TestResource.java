@@ -13,33 +13,39 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.inject;
+package org.usrz.libs.httpd;
 
-import static org.usrz.libs.utils.Check.notNull;
+import java.util.Date;
+import java.util.Map;
 
-import java.io.File;
-import java.io.IOException;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-import javax.inject.Singleton;
+import org.usrz.libs.utils.Check;
 
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
+@Path("/")
+public class TestResource {
 
-@Singleton
-public class FileHandlerProvider extends HttpHandlerProvider {
+    private Map<String, Integer> map;
 
-    public FileHandlerProvider(File documentRoot, HttpHandlerPath path) {
-        super(create(documentRoot), path);
+    @Inject @Named("foobar")
+    public void setDependency(Map<String, Integer> map) {
+        this.map = Check.notNull(map, "Null map");
     }
 
-    private static HttpHandler create(File documentRoot) {
-        notNull(documentRoot, "Document root not specified");
-        try {
-            final File directory = documentRoot.getCanonicalFile();
-            if (directory.isDirectory()) return new StaticHttpHandler(directory.getAbsolutePath());
-            throw new IllegalArgumentException("Document root \"" + directory + "\" is not a directory");
-        } catch (IOException exception) {
-            throw new IllegalArgumentException("I/O error resolving document root \"" + documentRoot + "\"", exception);
-        }
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response get() {
+        return Response.ok(new Bean()).build();
+    }
+
+    public class Bean {
+        public Date getEpochDate() { return new Date(0); }
+        public Map<String, Integer> getDependedMap() { return map; }
     }
 }

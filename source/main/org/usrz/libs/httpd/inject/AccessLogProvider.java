@@ -21,21 +21,27 @@ import java.io.File;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.accesslog.AccessLogBuilder;
 import org.glassfish.grizzly.http.server.accesslog.AccessLogProbe;
 import org.usrz.libs.configurations.Configurations;
+import org.usrz.libs.logging.Log;
 
+@Singleton
 public class AccessLogProvider implements Provider<AccessLogProbe> {
 
+    private final Log log = new Log();
     private final AccessLogProbe probe;
+    private final File accessLog;
 
     private boolean installed;
     private HttpServer server;
 
     public AccessLogProvider(Configurations configurations) {
-        final File accessLog = configurations.requireFile("file");
+        accessLog = configurations.requireFile("file");
 
         /* Start building our access log */
         final AccessLogBuilder accessLogBuilder = new AccessLogBuilder(accessLog);
@@ -51,6 +57,9 @@ public class AccessLogProvider implements Provider<AccessLogProbe> {
             if (rotationPattern != null) accessLogBuilder.rotationPattern(rotationPattern);
         }
 
+        /* Synchronous log? (not by default) */
+        accessLogBuilder.synchronous(configurations.get("synchronous", false));
+
         /* Set the format, if we have to */
         final String format = configurations.getString("format", null);
         if (format != null) accessLogBuilder.format(format);
@@ -63,6 +72,10 @@ public class AccessLogProvider implements Provider<AccessLogProbe> {
         probe = accessLogBuilder.build();
     }
 
+    public String getName() {
+        return accessLog.getAbsolutePath();
+    }
+
     @Inject
     private void setHttpServer(HttpServer server) {
         this.server = server;
@@ -72,11 +85,11 @@ public class AccessLogProvider implements Provider<AccessLogProbe> {
     public AccessLogProbe get() {
         if (installed) return probe;
 
-        notNull(server, "Null server").getServerConfiguration()
-                                      .getMonitoringConfig()
-                                      .getWebServerConfig()
-                                      .addProbes(probe);
+        final ServerConfiguration configuration = notNull(server, "Null server").getServerConfiguration();
+        configuration.getMonitoringConfig().getWebServerConfig().addProbes(probe);
         installed = true;
+
+        log.info("Configured access log writing to \"%s\" on server \"%s\"", accessLog, configuration.getName());
 
         return probe;
     }

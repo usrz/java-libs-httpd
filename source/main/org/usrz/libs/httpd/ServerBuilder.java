@@ -21,7 +21,6 @@ import static org.usrz.libs.utils.Check.notNull;
 import java.io.File;
 import java.util.function.Consumer;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 
 import org.glassfish.grizzly.http.server.ErrorPageGenerator;
@@ -47,15 +46,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ServerBuilder {
 
+    private final Binder parent;
     private final Binder binder;
 
     protected ServerBuilder(Binder binder) {
-        this.binder = notNull(binder, "Null binder").isolate();
-        binder.bind(HttpServer.class).toProvider(HttpServerProvider.class);
-        binder.expose(HttpServer.class);
+        parent = notNull(binder, "Null binder");
+        this.binder = parent.isolate();
+        this.binder.bind(HttpServer.class).toProvider(HttpServerProvider.class);
+        this.binder.expose(HttpServer.class);
     }
 
     /* ====================================================================== */
+
+    public void install(Consumer<Binder> consumer) {
+        consumer.accept(parent);
+    }
+
+    /* ---------------------------------------------------------------------- */
 
     public void configure(Configurations configurations) {
 
@@ -63,7 +70,7 @@ public class ServerBuilder {
         binder.configure(configurations);
 
         /* Add our access log if configured */
-        final Configurations accessLog = configurations.strip("accessLog");
+        final Configurations accessLog = configurations.strip("access_log");
         if (! accessLog.isEmpty()) addAccessLog(accessLog);
 
         /* Add our singleton listener configured */
@@ -73,6 +80,10 @@ public class ServerBuilder {
         /* Add any other listener grouped by "listeners" */
         configurations.group("listeners").values().forEach((configuration) ->
             addListener(configuration));
+
+        /* Any document root? */
+        final File documentRoot = configurations.getFile("document_root");
+        if (documentRoot != null) this.serveFiles("/", documentRoot);
 
         /* And finally remember our JSON configurations */
         final Configurations json = configurations.strip("json");
@@ -91,21 +102,30 @@ public class ServerBuilder {
         binder.bind(ErrorPageGenerator.class).toInstance(generator);
     }
 
+    public void withErrorPageGenerator(Class<? extends ErrorPageGenerator> generator) {
+        binder.bind(ErrorPageGenerator.class).to(generator);
+    }
+
+    public void withErrorPageGenerator(TypeLiteral<? extends ErrorPageGenerator> generator) {
+        binder.bind(ErrorPageGenerator.class).to(generator);
+    }
+
     /* ====================================================================== */
 
     public void addAccessLog(Configurations configurations) {
         binder.bind(AccessLogProbe.class)
                    .with(Names.unique())
-                   .toProvider(new AccessLogProvider(configurations));
+                   .toProvider(new AccessLogProvider(configurations))
+                   .withEagerInjection();
     }
 
     /* ====================================================================== */
 
     public void addListener(Configurations configurations) {
-        final Named unique = Names.unique();
+        final NetworkListenerProvider provider = new NetworkListenerProvider(configurations);
         binder.bind(NetworkListener.class)
-              .with(unique)
-              .toProvider(new NetworkListenerProvider(configurations, unique))
+              .with(Names.named(provider.getName()))
+              .toProvider(provider)
               .withEagerInjection();
     }
 
@@ -150,6 +170,17 @@ public class ServerBuilder {
     public void serveRest(String path, Consumer<ResourceConfig> consumer) {
         final HttpHandlerPath at = handlerPath(path);
         this.addHandler(at, new RestHandlerProvider(consumer, at));
+        /* No need to isolate, share JSON configs */
+    }
+
+    public void serveRest(String path, Configurations json, Consumer<ResourceConfig> consumer) {
+        final HttpHandlerPath at = handlerPath(path);
+        final RestHandlerProvider provider = new RestHandlerProvider(consumer, at);
+
+        final Binder isolate = binder.isolate();
+        isolate.bind(ObjectMapper.class).toProvider(new ObjectMapperProvider(json));
+        isolate.bind(HttpHandler.class).with(at).toProvider(provider).withEagerInjection();
+        isolate.expose(HttpHandler.class).with(at).withEagerInjection();
     }
 
 }

@@ -21,34 +21,27 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.usrz.libs.configurations.CommandLineConfigurations;
-import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.inject.Injector;
 import org.usrz.libs.logging.Log;
 import org.usrz.libs.logging.Logging;
 
-public abstract class ServerStarter {
+public class ServerStarter {
 
     static { Logging.init(); }
 
     private static final Log log = new Log();
-    protected final Configurations configurations;
+    private HttpServer server;
 
-    protected ServerStarter(String args[]) {
-        this(new CommandLineConfigurations(args));
+    public ServerStarter() {
+        /* Nothing to do */
     }
 
-    private ServerStarter(Configurations configurations) {
-        this.configurations = configurations;
-    }
-
-    public final void start(Consumer<ServerBuilder> consumer) {
+    public final ServerStarter start(Consumer<ServerBuilder> consumer) {
         notNull(consumer, "Null ServerBuilder consumer");
 
         /* Create a new injector with this module */
-        final Injector injector = Injector.create((binder) -> {
-            if (consumer != null) consumer.accept(new ServerBuilder(binder));
-        });
+        final Injector injector = Injector.create(
+                (binder) -> consumer.accept(new ServerBuilder(binder)));
 
         /* Get a hold on our HttpServer instance */
         final HttpServer server = injector.getInstance(HttpServer.class);
@@ -72,12 +65,28 @@ public abstract class ServerStarter {
             }
         });
 
+        /* Return self for chaining */
+        this.server = server;
+        return this;
+    }
+
+    public final void join() {
+        if (server == null) throw new IllegalStateException("Not started");
+
         /* Wait forever until the server is shut down */
         try {
             Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException exception) {
             log.warn(exception, "Interrupted while waiting server shutdown");
         }
+    }
+
+    public final void stop() {
+        if (server == null) throw new IllegalStateException("Not started");
+
+        final String serverName = server.getServerConfiguration().getName();
+        log.info("Shutting down server %s", serverName);
+        server.shutdown();
     }
 
 }

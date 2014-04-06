@@ -21,14 +21,18 @@ import java.lang.annotation.Annotation;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.usrz.libs.inject.Injector;
 import org.usrz.libs.inject.TypeLiteral;
+import org.usrz.libs.logging.Log;
 
+@Singleton
 public class HttpHandlerProvider implements Provider<HttpHandler> {
 
+    private final Log log = new Log();
     private final TypeLiteral<? extends HttpHandler> type;
     private final String path;
 
@@ -65,12 +69,14 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
         if (handler == null) {
             handler = injector.getInstance(type);
             server.getServerConfiguration().addHttpHandler(handler, path);
+            log.info("Created handler %s serving requests at \"%s\"", handler.getClass().getName(), path);
             injected = true;
         }
 
         if (! injected) {
             injector.injectMembers(handler);
             server.getServerConfiguration().addHttpHandler(handler, path);
+            log.info("Using handler %s serving requests at \"%s\"", handler.getClass().getName(), path);
             injected = true;
         }
 

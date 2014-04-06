@@ -17,6 +17,8 @@ package org.usrz.libs.httpd.rest;
 
 import static org.usrz.libs.utils.Check.notNull;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,12 +33,14 @@ import javax.ws.rs.ext.MessageBodyReader;
 import javax.ws.rs.ext.MessageBodyWriter;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.hk2.utilities.binding.ServiceBindingBuilder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainerProvider;
 import org.glassfish.jersey.internal.inject.Injections;
@@ -46,7 +50,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.inject.Injector;
 import org.usrz.libs.inject.Key;
-import org.usrz.libs.inject.Optional;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -70,7 +73,10 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
 
     /** Jersey's {@link ResourceConfig} for non-trivial customization */
     protected final ResourceConfig config;
-    /* Our Injector */
+
+    private final String path;
+    private HttpHandler handler = null;
+    private HttpServer server = null;
     private Injector injector = null;
 
     /**
@@ -80,6 +86,7 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
     public RestHandlerProvider(Consumer<ResourceConfig> consumer, HttpHandlerPath path) {
         config = new ResourceConfig();
         notNull(consumer).accept(config);
+        this.path = notNull(path, "Null path").value();
     }
 
     /* ====================================================================== */
@@ -89,7 +96,12 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
         this.injector = injector;
     }
 
-    @Inject @Optional
+    @Inject
+    private void setHttpServer(HttpServer server) {
+        this.server = server;
+    }
+
+    @Inject
     private void setObjectMapper(ObjectMapper mapper) {
         /* Setup Jackson as our JSON serializer/deserializer */
         final Map<Class<?>, Integer> contractPriorities = new HashMap<>();
@@ -113,19 +125,27 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
     public final HttpHandler get() {
         notNull(injector, "Injector not available");
 
+        if (handler != null) return handler;
+
         /* Create a new ServiceLocator parent linked to Guice */
         final ServiceLocator locator = Injections.createLocator(new AbstractBinder() {
             @Override protected void configure() {
                 injector.getBoundKeys(true, true).forEach((key) -> {
-                    this.bindFactory(factory(injector, key))
-                        .qualifiedBy(key.getAnnotation())
-                        .to(key.getTypeLiteral().getType());
+                    final Type type = key.getTypeLiteral().getType();
+                    final Annotation annotation = key.getAnnotation();
+
+                    log.debug("Exposing binding for %s (annotation=%s) to Jersey", type, annotation);
+                    final ServiceBindingBuilder<?> builder = this.bindFactory(factory(injector, key));
+                    if (annotation != null) builder.qualifiedBy(annotation);
+                    builder.to(type);
             });
         }});
 
-        /* Return a new Grizzly handler from Jersey's ApplicationHandler */
-        return new Handler(new ApplicationHandler(config, null, locator));
-
+        /* Create our handler and add it to our server configuration  */
+        handler = new Handler(new ApplicationHandler(config, null, locator));
+        server.getServerConfiguration().addHttpHandler(handler, path);
+        log.info("Serving requests at \"%s\" using Jersey application");
+        return handler;
     }
 
     private static <T> Factory<T> factory(Injector injector, Key<T> key) {
