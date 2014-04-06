@@ -122,7 +122,8 @@ public class ServerBuilderTest extends AbstractTest {
         /* Stop the server */
         starter.stop();
 
-        /* Check the access log */
+        /* Check the access log after a second... */
+        Thread.sleep(1000);
         final String access = new String(IO.read(accessLog));
         assertEquals(access, "127.0.0.1:" + port1 + " GET /index.html HTTP/1.1\n"
                            + "127.0.0.1:" + port2 + " GET /index.html HTTP/1.1\n"
