@@ -19,6 +19,9 @@ import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
 
 import org.testng.annotations.Test;
 import org.usrz.libs.configurations.Configurations;
@@ -125,12 +128,26 @@ public class ServerBuilderTest extends AbstractTest {
         /* Check the access log after a second... */
         Thread.sleep(1000);
         final String access = new String(IO.read(accessLog));
-        assertEquals(access, "127.0.0.1:" + port1 + " GET /index.html HTTP/1.1\n"
-                           + "127.0.0.1:" + port2 + " GET /index.html HTTP/1.1\n"
-                           + "127.0.0.1:" + port3 + " GET /index.html HTTP/1.1\n"
-                           + "127.0.0.1:" + port1 + " GET /rest1/ HTTP/1.1\n"
-                           + "127.0.0.1:" + port2 + " GET /rest2/ HTTP/1.1\n"
-                           + "127.0.0.1:" + port3 + " GET /rest3/ HTTP/1.1\n");
+
+        /*
+         * We *might* have entries not in the correct order, as we're too
+         * fast making them and those are written by Jersey's threads (which
+         * are all over the place). Sort'em!
+         */
+        final Set<String> parsed = new TreeSet<>();
+        final StringTokenizer tokenizer = new StringTokenizer(access, "\r\n");
+        while (tokenizer.hasMoreTokens()) parsed.add(tokenizer.nextToken());
+
+        final Set<String> expected = new TreeSet<>();
+        expected.add("127.0.0.1:" + port1 + " GET /index.html HTTP/1.1");
+        expected.add("127.0.0.1:" + port2 + " GET /index.html HTTP/1.1");
+        expected.add("127.0.0.1:" + port3 + " GET /index.html HTTP/1.1");
+        expected.add("127.0.0.1:" + port1 + " GET /rest1/ HTTP/1.1");
+        expected.add("127.0.0.1:" + port2 + " GET /rest2/ HTTP/1.1");
+        expected.add("127.0.0.1:" + port3 + " GET /rest3/ HTTP/1.1");
+
+        assertEquals(parsed.size(), 6);
+        assertEquals(parsed, expected);
 
     }
 }
