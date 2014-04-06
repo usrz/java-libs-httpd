@@ -86,7 +86,7 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
     /* ====================================================================== */
 
     public static final HttpHandlerPath handlerPath(String path) {
-        return new HttpHandlerPathImpl(path);
+        return new HttpHandlerPathImpl(notNull(path, "Null path"));
     }
 
     /* ---------------------------------------------------------------------- */
@@ -97,7 +97,6 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
         private final String path;
 
         private HttpHandlerPathImpl(String path) {
-            if (path == null) throw new NullPointerException("Null path");
             path = ("/" + path).replaceAll("/+", "/");
             path += path.endsWith("/") ? "*" : "/*";
             this.path = path;

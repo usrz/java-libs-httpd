@@ -164,10 +164,9 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
         private final GrizzlyHttpContainer handler;
 
         protected Handler(ApplicationHandler handler) {
-            if (handler == null) throw new NullPointerException("Null handler");
-            if (log == null) throw new NullPointerException("Null log");
             this.handler = new GrizzlyHttpContainerProvider()
-                    .createContainer(GrizzlyHttpContainer.class, handler);
+                    .createContainer(GrizzlyHttpContainer.class,
+                            notNull(handler, "Null handler"));
         }
 
         @Override
