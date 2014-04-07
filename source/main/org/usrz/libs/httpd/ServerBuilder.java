@@ -16,7 +16,6 @@
 package org.usrz.libs.httpd;
 
 import static org.usrz.libs.httpd.inject.HttpHandlerProvider.handlerPath;
-import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.File;
 import java.util.function.Consumer;
@@ -39,31 +38,25 @@ import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
 import org.usrz.libs.inject.Binder;
+import org.usrz.libs.inject.Isolate;
 import org.usrz.libs.inject.TypeLiteral;
 import org.usrz.libs.inject.utils.Names;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class ServerBuilder {
-
-    private final Binder parent;
-    private final Binder binder;
+public class ServerBuilder extends Isolate {
 
     protected ServerBuilder(Binder binder) {
-        parent = notNull(binder, "Null binder");
-        this.binder = parent.isolate();
+        super(binder);
+
+        /* Add the HttpServer in the child isolate as it might needs configs */
         this.binder.bind(HttpServer.class).toProvider(HttpServerProvider.class);
         this.binder.expose(HttpServer.class);
     }
 
     /* ====================================================================== */
 
-    public void install(Consumer<Binder> consumer) {
-        consumer.accept(parent);
-    }
-
-    /* ---------------------------------------------------------------------- */
-
+    @Override
     public void configure(Configurations configurations) {
 
         /* Bind our configs in this isolate */
