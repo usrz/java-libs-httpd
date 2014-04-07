@@ -56,6 +56,12 @@ public class ServerBuilder extends Isolate {
 
     /* ====================================================================== */
 
+    public void install(Consumer<Binder> consumer) {
+        consumer.accept(parent);
+    }
+
+    /* ---------------------------------------------------------------------- */
+
     @Override
     public void configure(Configurations configurations) {
 
