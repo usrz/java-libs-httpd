@@ -16,9 +16,8 @@
 package org.usrz.libs.httpd.rest;
 
 import static org.usrz.libs.utils.Check.notNull;
+import static org.usrz.libs.utils.Injections.getInstance;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +25,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.MessageBodyReader;
@@ -37,24 +35,23 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.ServiceLocator;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.hk2.utilities.binding.ServiceBindingBuilder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainerProvider;
 import org.glassfish.jersey.internal.inject.Injections;
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.glassfish.jersey.server.ContainerException;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
+import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
 import org.usrz.libs.httpd.inject.HttpHandlerPath;
-import org.usrz.libs.inject.Injector;
-import org.usrz.libs.inject.Key;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.cfg.Annotations;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+import com.google.inject.Injector;
+import com.google.inject.Provider;
 
 
 /**
@@ -74,7 +71,7 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
     /** Jersey's {@link ResourceConfig} for non-trivial customization */
     protected final ResourceConfig config;
 
-    private final String path;
+    private final HttpHandlerPath path;
     private HttpHandler handler = null;
     private HttpServer server = null;
     private Injector injector = null;
@@ -86,7 +83,7 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
     public RestHandlerProvider(Consumer<ResourceConfig> consumer, HttpHandlerPath path) {
         config = new ResourceConfig();
         notNull(consumer).accept(config);
-        this.path = notNull(path, "Null path").value();
+        this.path = notNull(path, "Null path"); //.value();
     }
 
     /* ====================================================================== */
@@ -94,16 +91,10 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
     @Inject
     private void setInjector(Injector injector) {
         this.injector = injector;
-    }
 
-    @Inject
-    private void setHttpServer(HttpServer server) {
-        this.server = server;
-    }
+        /* Setup our object mapper */
+        final ObjectMapper mapper = getInstance(injector, ObjectMapper.class, path);
 
-    @Inject
-    private void setObjectMapper(ObjectMapper mapper) {
-        /* Setup Jackson as our JSON serializer/deserializer */
         final Map<Class<?>, Integer> contractPriorities = new HashMap<>();
         contractPriorities.put(MessageBodyWriter.class, Integer.MIN_VALUE);
         contractPriorities.put(MessageBodyReader.class, Integer.MIN_VALUE);
@@ -113,6 +104,11 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
 
         /* Setup our JSONP body writer */
         config.register(JSONPBodyWriter.class);
+    }
+
+    @Inject
+    private void setHttpServer(HttpServer server) {
+        this.server = server;
     }
 
     /* ====================================================================== */
@@ -127,32 +123,19 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
 
         if (handler != null) return handler;
 
-        /* Create a new ServiceLocator parent linked to Guice */
-        final ServiceLocator locator = Injections.createLocator(new AbstractBinder() {
-            @Override protected void configure() {
-                injector.getBoundKeys(true, true).forEach((key) -> {
-                    final Type type = key.getTypeLiteral().getType();
-                    final Annotation annotation = key.getAnnotation();
+        /* Check that an injector was properly provided to us */
+        if (injector == null) throw new IllegalStateException("No injector");
 
-                    log.debug("Exposing binding for %s (annotation=%s) to Jersey", type, annotation);
-                    final ServiceBindingBuilder<?> builder = this.bindFactory(factory(injector, key));
-                    if (annotation != null) builder.qualifiedBy(annotation);
-                    builder.to(type);
-            });
-        }});
+        /* Create a new ServiceLocator parent linked to Guice */
+        final ServiceLocator locator = Injections.createLocator();
+        GuiceBridge.getGuiceBridge().initializeGuiceBridge(locator);
+        locator.getService(GuiceIntoHK2Bridge.class).bridgeGuiceInjector(injector);
 
         /* Create our handler and add it to our server configuration  */
         handler = new Handler(new ApplicationHandler(config, null, locator));
-        server.getServerConfiguration().addHttpHandler(handler, path);
+        server.getServerConfiguration().addHttpHandler(handler, path.value());
         log.info("Serving requests at \"%s\" using Jersey application");
         return handler;
-    }
-
-    private static <T> Factory<T> factory(Injector injector, Key<T> key) {
-        return new Factory<T>() {
-            @Override public T provide() { return injector.getInstance(key); }
-            @Override public void dispose(T instance) { }
-        };
     }
 
     /* ====================================================================== */

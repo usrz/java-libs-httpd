@@ -26,10 +26,12 @@ import java.util.TreeSet;
 import org.testng.annotations.Test;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.configurations.ConfigurationsBuilder;
-import org.usrz.libs.inject.TypeLiteral;
 import org.usrz.libs.testing.AbstractTest;
 import org.usrz.libs.testing.IO;
 import org.usrz.libs.testing.NET;
+
+import com.google.inject.TypeLiteral;
+import com.google.inject.name.Names;
 
 public class ServerBuilderTest extends AbstractTest {
 
@@ -101,7 +103,7 @@ public class ServerBuilderTest extends AbstractTest {
 
             /* Remember to inject our dependency for TestResource */
             builder.install((binder) -> binder.bind(new TypeLiteral<Map<String, Integer>>(){})
-                                              .with("foobar")
+                                              .annotatedWith(Names.named("foobar"))
                                               .toInstance(dependency));
         });
 

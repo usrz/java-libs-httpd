@@ -16,6 +16,7 @@
 package org.usrz.libs.httpd;
 
 import static org.usrz.libs.httpd.inject.HttpHandlerProvider.handlerPath;
+import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.File;
 import java.util.function.Consumer;
@@ -37,36 +38,37 @@ import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
-import org.usrz.libs.inject.Binder;
-import org.usrz.libs.inject.Isolate;
-import org.usrz.libs.inject.TypeLiteral;
-import org.usrz.libs.inject.utils.Names;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.google.inject.TypeLiteral;
+import com.google.inject.name.Names;
 
-public class ServerBuilder extends Isolate {
+public class ServerBuilder {
+
+    private final Binder binder;
 
     protected ServerBuilder(Binder binder) {
-        super(binder);
+        this.binder = notNull(binder, "Null binder");
 
         /* Add the HttpServer in the child isolate as it might needs configs */
         this.binder.bind(HttpServer.class).toProvider(HttpServerProvider.class);
-        this.binder.expose(HttpServer.class);
     }
 
     /* ====================================================================== */
 
     public void install(Consumer<Binder> consumer) {
-        consumer.accept(parent);
+        consumer.accept(binder);
+    }
+
+    public void install(Module... modules) {
+        for (Module module: modules) binder.install(module);
     }
 
     /* ---------------------------------------------------------------------- */
 
-    @Override
     public void configure(Configurations configurations) {
-
-        /* Bind our configs in this isolate */
-        binder.configure(configurations);
 
         /* Add our access log if configured */
         final Configurations accessLog = configurations.strip("access_log");
@@ -112,10 +114,11 @@ public class ServerBuilder extends Isolate {
     /* ====================================================================== */
 
     public void addAccessLog(Configurations configurations) {
+        final AccessLogProvider provider = new AccessLogProvider(configurations);
         binder.bind(AccessLogProbe.class)
-                   .with(Names.unique())
-                   .toProvider(new AccessLogProvider(configurations))
-                   .withEagerInjection();
+              .annotatedWith(Names.named(provider.getName()))
+              .toProvider(provider)
+              .asEagerSingleton();
     }
 
     /* ====================================================================== */
@@ -123,18 +126,18 @@ public class ServerBuilder extends Isolate {
     public void addListener(Configurations configurations) {
         final NetworkListenerProvider provider = new NetworkListenerProvider(configurations);
         binder.bind(NetworkListener.class)
-              .with(Names.named(provider.getName()))
+              .annotatedWith(Names.named(provider.getName()))
               .toProvider(provider)
-              .withEagerInjection();
+              .asEagerSingleton();
     }
 
     /* ====================================================================== */
 
     private void addHandler(HttpHandlerPath path, Provider<HttpHandler> provider) {
         binder.bind(HttpHandler.class)
-              .with(path)
+              .annotatedWith(path)
               .toProvider(provider)
-              .withEagerInjection();
+              .asEagerSingleton();
     }
 
     /* ---------------------------------------------------------------------- */
@@ -150,7 +153,7 @@ public class ServerBuilder extends Isolate {
     }
 
     public void addHandler(String path, Class<? extends HttpHandler> handler) {
-        this.addHandler(path, TypeLiteral.of(handler));
+        this.addHandler(path, TypeLiteral.get(handler));
     }
 
     /* ---------------------------------------------------------------------- */
@@ -169,17 +172,14 @@ public class ServerBuilder extends Isolate {
     public void serveRest(String path, Consumer<ResourceConfig> consumer) {
         final HttpHandlerPath at = handlerPath(path);
         this.addHandler(at, new RestHandlerProvider(consumer, at));
-        /* No need to isolate, share JSON configs */
     }
 
     public void serveRest(String path, Configurations json, Consumer<ResourceConfig> consumer) {
         final HttpHandlerPath at = handlerPath(path);
         final RestHandlerProvider provider = new RestHandlerProvider(consumer, at);
 
-        final Binder isolate = binder.isolate();
-        isolate.bind(ObjectMapper.class).toProvider(new ObjectMapperProvider(json));
-        isolate.bind(HttpHandler.class).with(at).toProvider(provider).withEagerInjection();
-        isolate.expose(HttpHandler.class).with(at).withEagerInjection();
+        binder.bind(ObjectMapper.class).annotatedWith(at).toProvider(new ObjectMapperProvider(json));
+        binder.bind(HttpHandler.class).annotatedWith(at).toProvider(provider).asEagerSingleton();
     }
 
 }

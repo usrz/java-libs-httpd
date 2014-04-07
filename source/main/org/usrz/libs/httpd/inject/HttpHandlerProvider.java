@@ -25,9 +25,11 @@ import javax.inject.Singleton;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.usrz.libs.inject.Injector;
-import org.usrz.libs.inject.TypeLiteral;
 import org.usrz.libs.logging.Log;
+
+import com.google.inject.Injector;
+import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 
 @Singleton
 public class HttpHandlerProvider implements Provider<HttpHandler> {
@@ -49,7 +51,7 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
     public HttpHandlerProvider(HttpHandler handler, HttpHandlerPath path) {
         this.handler = notNull(handler, "Null handler");
         this.path = notNull(path, "Null path").value();
-        type = TypeLiteral.from(handler);
+        type = TypeLiteral.get(handler.getClass());
     }
 
     @Inject
@@ -67,7 +69,7 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
         notNull(injector, "Injector not available");
 
         if (handler == null) {
-            handler = injector.getInstance(type);
+            handler = injector.getInstance(Key.get(type));
             server.getServerConfiguration().addHttpHandler(handler, path);
             log.info("Created handler %s serving requests at \"%s\"", handler.getClass().getName(), path);
             injected = true;

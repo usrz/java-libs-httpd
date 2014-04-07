@@ -19,8 +19,6 @@ import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_PORT;
 import static org.usrz.libs.utils.Check.notNull;
 
-import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.net.ssl.SSLContext;
 
@@ -28,8 +26,10 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.usrz.libs.configurations.Configurations;
-import org.usrz.libs.inject.Optional;
 import org.usrz.libs.logging.Log;
+
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 
 @Singleton
 public class NetworkListenerProvider implements Provider<NetworkListener> {
@@ -63,7 +63,7 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
         this.server = server;
     }
 
-    @Inject @Optional
+    @Inject(optional=true)
     private void setSSLContext(SSLContext context) {
         this.context = context;
     }

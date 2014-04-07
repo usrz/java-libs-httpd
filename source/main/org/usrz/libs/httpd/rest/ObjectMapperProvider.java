@@ -23,13 +23,12 @@ import static com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTR
 import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 import static org.usrz.libs.utils.Check.notNull;
 
-import javax.inject.Provider;
-
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.google.inject.Provider;
 
 public class ObjectMapperProvider implements Provider<ObjectMapper> {
 

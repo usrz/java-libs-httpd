@@ -33,8 +33,8 @@ public class TestResource {
 
     private Map<String, Integer> map;
 
-    @Inject @Named("foobar")
-    public void setDependency(Map<String, Integer> map) {
+    @Inject
+    public void setDependency(@Named("foobar") Map<String, Integer> map) {
         this.map = Check.notNull(map, "Null map");
     }
 

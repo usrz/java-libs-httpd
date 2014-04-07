@@ -21,9 +21,11 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.usrz.libs.inject.Injector;
 import org.usrz.libs.logging.Log;
 import org.usrz.libs.logging.Logging;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 
 public class ServerStarter {
 
@@ -39,9 +41,8 @@ public class ServerStarter {
     public final ServerStarter start(Consumer<ServerBuilder> consumer) {
         notNull(consumer, "Null ServerBuilder consumer");
 
-        /* Create a new injector with this module */
-        final Injector injector = Injector.create(
-                (binder) -> consumer.accept(new ServerBuilder(binder)));
+        /* Create a new injector and set up the module */
+        final Injector injector = Guice.createInjector((binder) -> consumer.accept(new ServerBuilder(binder)));
 
         /* Get a hold on our HttpServer instance */
         final HttpServer server = injector.getInstance(HttpServer.class);

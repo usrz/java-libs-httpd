@@ -17,7 +17,6 @@ package org.usrz.libs.httpd.inject;
 
 import static org.usrz.libs.configurations.Configurations.EMPTY_CONFIGURATIONS;
 
-import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -26,8 +25,9 @@ import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.usrz.libs.configurations.Configurations;
-import org.usrz.libs.inject.Optional;
 import org.usrz.libs.logging.Log;
+
+import com.google.inject.Inject;
 
 @Singleton
 public class HttpServerProvider implements Provider<HttpServer >{
@@ -43,12 +43,12 @@ public class HttpServerProvider implements Provider<HttpServer >{
         /* Nothing to do, really */
     }
 
-    @Inject
+    @Inject(optional=true)
     protected final void setConfigurations(Configurations configurations) {
         this.configurations = configurations;
     }
 
-    @Inject @Optional
+    @Inject(optional=true)
     protected final void setDefaultErrorPageGenerator(ErrorPageGenerator defaultErrorPageGenerator) {
         this.defaultErrorPageGenerator = defaultErrorPageGenerator;
     }
