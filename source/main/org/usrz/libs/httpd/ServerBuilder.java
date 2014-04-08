@@ -57,6 +57,7 @@ public class ServerBuilder {
 
     protected ServerBuilder(Binder binder) {
         this.binder = notNull(binder, "Null binder");
+        binder.skipSources(this.getClass());
 
         /* Add the HttpServer in the child isolate as it might needs configs */
         this.binder.bind(HttpServer.class).toProvider(new HttpServerProvider().with(unique));
