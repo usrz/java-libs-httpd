@@ -21,7 +21,6 @@ import java.lang.annotation.Annotation;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
-import javax.inject.Singleton;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -29,59 +28,43 @@ import org.usrz.libs.logging.Log;
 
 import com.google.inject.Injector;
 import com.google.inject.Key;
-import com.google.inject.TypeLiteral;
 
-@Singleton
 public class HttpHandlerProvider implements Provider<HttpHandler> {
 
     private final Log log = new Log();
-    private final TypeLiteral<? extends HttpHandler> type;
+    private final Key<? extends HttpHandler> key;
+    private final HttpHandler handler;
     private final String path;
 
-    private boolean injected;
-    private Injector injector;
-    private HttpServer server;
-    private HttpHandler handler;
 
-    public HttpHandlerProvider(TypeLiteral<? extends HttpHandler> type, HttpHandlerPath path) {
-        this.type = notNull(type, "Null handler type");
+    public HttpHandlerProvider(Key<? extends HttpHandler> key, HttpHandlerPath path) {
         this.path = notNull(path, "Null path").value();
+        this.key = notNull(key, "Null handler key");
+        handler = null;
     }
 
     public HttpHandlerProvider(HttpHandler handler, HttpHandlerPath path) {
         this.handler = notNull(handler, "Null handler");
         this.path = notNull(path, "Null path").value();
-        type = TypeLiteral.get(handler.getClass());
+        key = null;
     }
 
     @Inject
-    private void setHttpServer(HttpServer server) {
-        this.server = server;
-    }
+    private void setup(Injector injector, HttpServer server) {
+        final HttpHandler httpHandler;
+        if (handler == null) {
+            httpHandler = injector.getInstance(key);
+        } else {
+            injector.injectMembers(handler);
+            httpHandler = handler;
+        }
 
-    @Inject
-    private void setInjector(Injector injector) {
-        this.injector = injector;
+        server.getServerConfiguration().addHttpHandler(httpHandler, path);
+        log.info("Serving \"%s\" using handler %s", path, httpHandler.getClass().getName());
     }
 
     @Override
     public HttpHandler get() {
-        notNull(injector, "Injector not available");
-
-        if (handler == null) {
-            handler = injector.getInstance(Key.get(type));
-            server.getServerConfiguration().addHttpHandler(handler, path);
-            log.info("Created handler %s serving requests at \"%s\"", handler.getClass().getName(), path);
-            injected = true;
-        }
-
-        if (! injected) {
-            injector.injectMembers(handler);
-            server.getServerConfiguration().addHttpHandler(handler, path);
-            log.info("Using handler %s serving requests at \"%s\"", handler.getClass().getName(), path);
-            injected = true;
-        }
-
         return handler;
     }
 

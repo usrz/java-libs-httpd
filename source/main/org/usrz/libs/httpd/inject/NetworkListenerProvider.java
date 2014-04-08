@@ -19,6 +19,8 @@ import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_PORT;
 import static org.usrz.libs.utils.Check.notNull;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.net.ssl.SSLContext;
 
@@ -28,8 +30,7 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
-import com.google.inject.Inject;
-import com.google.inject.Provider;
+import com.google.inject.Injector;
 
 @Singleton
 public class NetworkListenerProvider implements Provider<NetworkListener> {
@@ -41,8 +42,7 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
     private final String host;
     private final int port;
 
-    private SSLContext context;
-    private HttpServer server;
+    private NetworkListener listener;
 
     public NetworkListenerProvider(Configurations configurations) {
         this.configurations = notNull(configurations, "Null configurations");
@@ -59,19 +59,10 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
     }
 
     @Inject
-    private void setHttpServer(HttpServer server) {
-        this.server = server;
-    }
+    private void setup(Injector injector, HttpServer server) {
 
-    @Inject(optional=true)
-    private void setSSLContext(SSLContext context) {
-        this.context = context;
-    }
-
-    @Override
-    public NetworkListener get() {
-
-        final NetworkListener listener = new NetworkListener(name, host, port);
+        /* Start by creating our listener */
+        listener = new NetworkListener(name, host, port);
         listener.setUriEncoding("UTF-8");
 
         final boolean secure = configurations.get("secure", false);
@@ -80,7 +71,7 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
             final boolean wantClientAuth = configurations.get("wantClientAuth", false);
             final boolean needClientAuth = configurations.get("needClientAuth", false);
 
-            final SSLContext sslContext = notNull(context, "SSL context not bound");
+            final SSLContext sslContext = injector.getInstance(SSLContext.class);
             final SSLEngineConfigurator sslConfigurator = new SSLEngineConfigurator(sslContext);
 
             sslConfigurator.setClientMode(false);
@@ -91,11 +82,14 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
             listener.setSecure(true);
         }
 
-        final HttpServer server = notNull(this.server, "HTTP server not bound");
         final String name = server.getServerConfiguration().getName();
         server.addListener(listener);
 
         log.info("Added listener \"%s\" bound to %s:%d (secure=%b) to server \"%s\"", name, host, port, secure, name);
+    }
+
+    @Override
+    public NetworkListener get() {
         return listener;
     }
 

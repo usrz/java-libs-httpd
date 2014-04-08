@@ -88,6 +88,11 @@ public class ServerStarter {
         final String serverName = server.getServerConfiguration().getName();
         log.info("Shutting down server %s", serverName);
         server.shutdown();
+        server = null;
     }
 
+    public final HttpServer server() {
+        if (server == null) throw new IllegalStateException("Not started");
+        return server;
+    }
 }

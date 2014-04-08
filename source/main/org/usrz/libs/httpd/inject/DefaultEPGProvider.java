@@ -17,46 +17,43 @@ package org.usrz.libs.httpd.inject;
 
 import static org.usrz.libs.utils.Check.notNull;
 
-import java.io.File;
-import java.io.IOException;
-
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.usrz.libs.logging.Log;
 
-public class FileHandlerProvider implements Provider<HttpHandler> {
+import com.google.inject.Injector;
+import com.google.inject.Key;
+
+public class DefaultEPGProvider implements Provider<ErrorPageGenerator> {
 
     private final Log log = new Log();
-    private final StaticHttpHandler handler;
-    private final String path;
+    private final Key<? extends ErrorPageGenerator> key;
+    private final ErrorPageGenerator generator;
 
-    public FileHandlerProvider(File documentRoot, HttpHandlerPath path) {
-        this.path = notNull(path, "Null path").value();
+    public DefaultEPGProvider(ErrorPageGenerator generator) {
+        this.generator = notNull(generator, "Null error page generator");
+        key = null;
+    }
 
-        try {
-            final File directory = notNull(documentRoot, "Document root not specified").getCanonicalFile();
-            if (directory.isDirectory()) {
-                handler = new StaticHttpHandler(directory.getAbsolutePath());
-            } else {
-                throw new IllegalArgumentException("Document root \"" + directory + "\" is not a directory");
-            }
-        } catch (IOException exception) {
-            throw new IllegalStateException("I/O error resolving document root \"" + documentRoot + "\"", exception);
-        }
+    public DefaultEPGProvider(Key<? extends ErrorPageGenerator> key) {
+        this.key = notNull(key, "Null key");
+        generator = null;
     }
 
     @Inject
-    private void setup(HttpServer server) {
-        server.getServerConfiguration().addHttpHandler(handler, path);
-        log.info("Serving \"%s\" as static files from \"%s\"", path, handler.getDefaultDocRoot());
+    private void setup(Injector injector, HttpServer server) {
+        final ServerConfiguration configuration = server.getServerConfiguration();
+        configuration.setDefaultErrorPageGenerator(generator != null ? generator :
+                                                       injector.getInstance(key));
+        log.info("Configured default error page generator on server \"%s\"", configuration.getName());
     }
 
     @Override
-    public HttpHandler get() {
-        return handler;
+    public ErrorPageGenerator get() {
+        return generator;
     }
 }

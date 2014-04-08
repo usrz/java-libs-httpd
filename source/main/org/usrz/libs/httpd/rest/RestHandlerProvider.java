@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.MessageBodyReader;
@@ -36,6 +37,7 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainerProvider;
 import org.glassfish.jersey.internal.inject.Injections;
@@ -51,8 +53,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.cfg.Annotations;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.google.inject.Injector;
-import com.google.inject.Provider;
-
 
 /**
  * A {@link Provider} working in conjunction with
@@ -72,27 +72,35 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
     protected final ResourceConfig config;
 
     private final HttpHandlerPath path;
-    private HttpHandler handler = null;
-    private HttpServer server = null;
-    private Injector injector = null;
+    private HttpHandler handler;
 
     /**
      * Create a new {@link RestHandlerProvider} instance specifying the
-     * underlying application <em>name</em>
+     * underlying {@link Application}.
+     */
+    public RestHandlerProvider(Application application, HttpHandlerPath path) {
+        this.path = notNull(path, "Null path");
+        config = ResourceConfig.forApplication(notNull(application, "Null application"));
+        config.setApplicationName(application.getClass().getName());
+    }
+
+    /**
+     * Create a new {@link RestHandlerProvider} instance specifying a consumer
+     * configuring the {@link Application}.
      */
     public RestHandlerProvider(Consumer<ResourceConfig> consumer, HttpHandlerPath path) {
+        this.path = notNull(path, "Null path");
         config = new ResourceConfig();
+        config.setApplicationName(consumer.toString());
         notNull(consumer).accept(config);
-        this.path = notNull(path, "Null path"); //.value();
     }
 
     /* ====================================================================== */
 
     @Inject
-    private void setInjector(Injector injector) {
-        this.injector = injector;
+    private void setup(Injector injector, HttpServer server) {
 
-        /* Setup our object mapper */
+        /* Setup our object mapper (could be qualified with path) */
         final ObjectMapper mapper = getInstance(injector, ObjectMapper.class, path);
 
         final Map<Class<?>, Integer> contractPriorities = new HashMap<>();
@@ -104,37 +112,31 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
 
         /* Setup our JSONP body writer */
         config.register(JSONPBodyWriter.class);
-    }
 
-    @Inject
-    private void setHttpServer(HttpServer server) {
-        this.server = server;
-    }
+        /*
+         * Create a new ServiceLocator, making sure that any time we get an
+         * ObjectMapper our (possibly configured) instance is returned.
+         */
+        final ServiceLocator locator = Injections.createLocator(new AbstractBinder() {
+            @Override protected void configure() {
+                this.bind(mapper).to(ObjectMapper.class);
+            }});
 
-    /* ====================================================================== */
-
-    /**
-     * Create an {@link HttpHandler} instance ready to be used by
-     * <a href="https://grizzly.java.net/">Grizzly</a>.
-     */
-    @Override
-    public final HttpHandler get() {
-        notNull(injector, "Injector not available");
-
-        if (handler != null) return handler;
-
-        /* Check that an injector was properly provided to us */
-        if (injector == null) throw new IllegalStateException("No injector");
-
-        /* Create a new ServiceLocator parent linked to Guice */
-        final ServiceLocator locator = Injections.createLocator();
+        /* Set up all other bindings to go to Guice */
         GuiceBridge.getGuiceBridge().initializeGuiceBridge(locator);
         locator.getService(GuiceIntoHK2Bridge.class).bridgeGuiceInjector(injector);
 
         /* Create our handler and add it to our server configuration  */
         handler = new Handler(new ApplicationHandler(config, null, locator));
         server.getServerConfiguration().addHttpHandler(handler, path.value());
-        log.info("Serving requests at \"%s\" using Jersey application");
+        log.info("Serving \"%s\" using Jersey application \"%s\"", path.value(), config.getApplicationName());
+
+    }
+
+    /* ====================================================================== */
+
+    @Override
+    public final HttpHandler get() {
         return handler;
     }
 

@@ -15,42 +15,25 @@
  * ========================================================================== */
 package org.usrz.libs.httpd.inject;
 
-import static org.usrz.libs.configurations.Configurations.EMPTY_CONFIGURATIONS;
-
-import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.usrz.libs.configurations.Configurations;
+import org.usrz.libs.configurations.ConfigurableProvider;
 import org.usrz.libs.logging.Log;
 
-import com.google.inject.Inject;
-
 @Singleton
-public class HttpServerProvider implements Provider<HttpServer >{
+public class HttpServerProvider extends ConfigurableProvider<HttpServer, HttpServerProvider>{
 
     private final Log log = new Log();
 
-    private Configurations configurations = EMPTY_CONFIGURATIONS;
     private ErrorPageGenerator defaultErrorPageGenerator;
     private HttpServer server;
 
-    @Inject
-    protected HttpServerProvider() {
+    public HttpServerProvider() {
         /* Nothing to do, really */
-    }
-
-    @Inject(optional=true)
-    protected final void setConfigurations(Configurations configurations) {
-        this.configurations = configurations;
-    }
-
-    @Inject(optional=true)
-    protected final void setDefaultErrorPageGenerator(ErrorPageGenerator defaultErrorPageGenerator) {
-        this.defaultErrorPageGenerator = defaultErrorPageGenerator;
     }
 
     @Override

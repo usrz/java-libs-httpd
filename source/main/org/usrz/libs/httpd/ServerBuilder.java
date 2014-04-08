@@ -19,9 +19,11 @@ import static org.usrz.libs.httpd.inject.HttpHandlerProvider.handlerPath;
 import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.util.function.Consumer;
 
 import javax.inject.Provider;
+import javax.ws.rs.core.Application;
 
 import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -31,6 +33,7 @@ import org.glassfish.grizzly.http.server.accesslog.AccessLogProbe;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.httpd.inject.AccessLogProvider;
+import org.usrz.libs.httpd.inject.DefaultEPGProvider;
 import org.usrz.libs.httpd.inject.FileHandlerProvider;
 import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.httpd.inject.HttpHandlerProvider;
@@ -38,22 +41,25 @@ import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
+import org.usrz.libs.utils.Injections;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 
 public class ServerBuilder {
 
+    private final Annotation unique = Injections.unique();
     private final Binder binder;
 
     protected ServerBuilder(Binder binder) {
         this.binder = notNull(binder, "Null binder");
 
         /* Add the HttpServer in the child isolate as it might needs configs */
-        this.binder.bind(HttpServer.class).toProvider(HttpServerProvider.class);
+        this.binder.bind(HttpServer.class).toProvider(new HttpServerProvider().with(unique));
     }
 
     /* ====================================================================== */
@@ -69,6 +75,9 @@ public class ServerBuilder {
     /* ---------------------------------------------------------------------- */
 
     public void configure(Configurations configurations) {
+
+        /* Bind the configurations for the server */
+        binder.bind(Configurations.class).annotatedWith(unique).toInstance(configurations);
 
         /* Add our access log if configured */
         final Configurations accessLog = configurations.strip("access_log");
@@ -100,15 +109,19 @@ public class ServerBuilder {
     /* ====================================================================== */
 
     public void withErrorPageGenerator(ErrorPageGenerator generator) {
-        binder.bind(ErrorPageGenerator.class).toInstance(generator);
+        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(generator));
     }
 
     public void withErrorPageGenerator(Class<? extends ErrorPageGenerator> generator) {
-        binder.bind(ErrorPageGenerator.class).to(generator);
+        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(Key.get(generator)));
     }
 
     public void withErrorPageGenerator(TypeLiteral<? extends ErrorPageGenerator> generator) {
-        binder.bind(ErrorPageGenerator.class).to(generator);
+        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(Key.get(generator)));
+    }
+
+    public void withErrorPageGenerator(Key<? extends ErrorPageGenerator> generator) {
+        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(generator));
     }
 
     /* ====================================================================== */
@@ -142,18 +155,22 @@ public class ServerBuilder {
 
     /* ---------------------------------------------------------------------- */
 
-    public void addHandler(String path, TypeLiteral<? extends HttpHandler> handler) {
-        final HttpHandlerPath at = handlerPath(path);
-        this.addHandler(at, new HttpHandlerProvider(handler, at));
-    }
-
     public void addHandler(String path, HttpHandler handler) {
         final HttpHandlerPath at = handlerPath(path);
         this.addHandler(at, new HttpHandlerProvider(handler, at));
     }
 
     public void addHandler(String path, Class<? extends HttpHandler> handler) {
-        this.addHandler(path, TypeLiteral.get(handler));
+        this.addHandler(path, Key.get(handler));
+    }
+
+    public void addHandler(String path, TypeLiteral<? extends HttpHandler> handler) {
+        this.addHandler(path, Key.get(handler));
+    }
+
+    public void addHandler(String path, Key<? extends HttpHandler> handler) {
+        final HttpHandlerPath at = handlerPath(path);
+        this.addHandler(at, new HttpHandlerProvider(handler, at));
     }
 
     /* ---------------------------------------------------------------------- */
@@ -169,9 +186,22 @@ public class ServerBuilder {
 
     /* ---------------------------------------------------------------------- */
 
+    public void serveRest(String path, Application application) {
+        final HttpHandlerPath at = handlerPath(path);
+        this.addHandler(at, new RestHandlerProvider(application, at));
+    }
+
     public void serveRest(String path, Consumer<ResourceConfig> consumer) {
         final HttpHandlerPath at = handlerPath(path);
         this.addHandler(at, new RestHandlerProvider(consumer, at));
+    }
+
+    public void serveRest(String path, Configurations json, Application application) {
+        final HttpHandlerPath at = handlerPath(path);
+        final RestHandlerProvider provider = new RestHandlerProvider(application, at);
+
+        binder.bind(ObjectMapper.class).annotatedWith(at).toProvider(new ObjectMapperProvider(json));
+        binder.bind(HttpHandler.class).annotatedWith(at).toProvider(provider).asEagerSingleton();
     }
 
     public void serveRest(String path, Configurations json, Consumer<ResourceConfig> consumer) {

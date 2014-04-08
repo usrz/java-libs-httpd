@@ -15,13 +15,10 @@
  * ========================================================================== */
 package org.usrz.libs.httpd.inject;
 
-import static org.usrz.libs.utils.Check.notNull;
-
 import java.io.File;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
-import javax.inject.Singleton;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
@@ -30,15 +27,11 @@ import org.glassfish.grizzly.http.server.accesslog.AccessLogProbe;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
-@Singleton
 public class AccessLogProvider implements Provider<AccessLogProbe> {
 
     private final Log log = new Log();
     private final AccessLogProbe probe;
     private final File accessLog;
-
-    private boolean installed;
-    private HttpServer server;
 
     public AccessLogProvider(Configurations configurations) {
         accessLog = configurations.requireFile("file");
@@ -77,20 +70,15 @@ public class AccessLogProvider implements Provider<AccessLogProbe> {
     }
 
     @Inject
-    private void setHttpServer(HttpServer server) {
-        this.server = server;
+    private void setup(HttpServer server) {
+        final ServerConfiguration configuration = server.getServerConfiguration();
+        configuration.getMonitoringConfig().getWebServerConfig().addProbes(probe);
+
+        log.info("Configured access log writing to \"%s\" on server \"%s\"", accessLog, configuration.getName());
     }
 
     @Override
     public AccessLogProbe get() {
-        if (installed) return probe;
-
-        final ServerConfiguration configuration = notNull(server, "Null server").getServerConfiguration();
-        configuration.getMonitoringConfig().getWebServerConfig().addProbes(probe);
-        installed = true;
-
-        log.info("Configured access log writing to \"%s\" on server \"%s\"", accessLog, configuration.getName());
-
         return probe;
     }
 

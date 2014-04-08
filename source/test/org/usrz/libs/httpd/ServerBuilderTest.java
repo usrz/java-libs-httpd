@@ -47,6 +47,7 @@ public class ServerBuilderTest extends AbstractTest {
         final int port3 = NET.serverPort();
 
         final Configurations configurations = new ConfigurationsBuilder()
+            .put("server.name", "myServer123")
             .put("server.listener.host", "127.0.0.1")
             .put("server.listener.port", port1)
             .put("server.listener.secure", false)
@@ -88,6 +89,7 @@ public class ServerBuilderTest extends AbstractTest {
 
             /* Serve /rest1 with undescores & timestamps */
             builder.serveRest("/rest1", (config) -> {
+                config.setApplicationName("testApp-1");
                 config.register(TestResource.class);
             });
 
@@ -97,9 +99,7 @@ public class ServerBuilderTest extends AbstractTest {
             });
 
             /* Serve /rest3 with camel case dates and indent! */
-            builder.serveRest("/rest3", json3, (config) -> {
-                config.register(TestResource.class);
-            });
+            builder.serveRest("/rest3", json3, new TestApplication());
 
             /* Remember to inject our dependency for TestResource */
             builder.install((binder) -> binder.bind(new TypeLiteral<Map<String, Integer>>(){})
@@ -107,25 +107,36 @@ public class ServerBuilderTest extends AbstractTest {
                                               .toInstance(dependency));
         });
 
-        /* Read our INDEX.HTML and compare for equality */
-        byte[] index = IO.read("index.html");
-        byte[] index1 = IO.read(new URL("http://127.0.0.1:" + port1 + "/index.html"));
-        byte[] index2 = IO.read(new URL("http://127.0.0.1:" + port2 + "/index.html"));
-        byte[] index3 = IO.read(new URL("http://127.0.0.1:" + port3 + "/index.html"));
-        assertEquals(index1, index, "Wrong data received from port " + port1);
-        assertEquals(index2, index, "Wrong data received from port " + port2);
-        assertEquals(index3, index, "Wrong data received from port " + port3);
+        try {
+            /* Check our server name */
+            assertEquals(starter.server().getServerConfiguration().getName(), "myServer123");
 
-        /* Reaad our REST values and check them */
-        final String string1 = new String(IO.read(new URL("http://127.0.0.1:" + port1 + "/rest1/")));
-        final String string2 = new String(IO.read(new URL("http://127.0.0.1:" + port2 + "/rest2/")));
-        final String string3 = new String(IO.read(new URL("http://127.0.0.1:" + port3 + "/rest3/")));
-        assertEquals(string1, "{\"depended_map\":{\"bar\":321,\"foo\":123},\"epoch_date\":0}");
-        assertEquals(string2, "{\"dependedMap\":{\"bar\":321,\"foo\":123},\"epochDate\":\"1970-01-01T00:00:00.000+0000\"}");
-        assertEquals(string3, "{\n  \"DependedMap\" : {\n    \"bar\" : 321,\n    \"foo\" : 123\n  },\n  \"EpochDate\" : \"1970-01-01T00:00:00.000+0000\"\n}");
+            /* Read our INDEX.HTML and compare for equality */
+            byte[] index = IO.read("index.html");
+            log.info("Executing 300 static requests");
+            for (int x = 0; x < 100; x ++) {
+                byte[] index1 = IO.read(new URL("http://127.0.0.1:" + port1 + "/index.html"));
+                byte[] index2 = IO.read(new URL("http://127.0.0.1:" + port2 + "/index.html"));
+                byte[] index3 = IO.read(new URL("http://127.0.0.1:" + port3 + "/index.html"));
+                assertEquals(index1, index, "Wrong data received from port " + port1);
+                assertEquals(index2, index, "Wrong data received from port " + port2);
+                assertEquals(index3, index, "Wrong data received from port " + port3);
+            }
 
-        /* Stop the server */
-        starter.stop();
+            /* Reaad our REST values and check them */
+            log.info("Executing 300 Jersey requests");
+            for (int x = 0; x < 100; x ++) {
+                final String string1 = new String(IO.read(new URL("http://127.0.0.1:" + port1 + "/rest1/")));
+                final String string2 = new String(IO.read(new URL("http://127.0.0.1:" + port2 + "/rest2/")));
+                final String string3 = new String(IO.read(new URL("http://127.0.0.1:" + port3 + "/rest3/")));
+                assertEquals(string1, "{\"depended_map\":{\"bar\":321,\"foo\":123},\"epoch_date\":0}");
+                assertEquals(string2, "{\"dependedMap\":{\"bar\":321,\"foo\":123},\"epochDate\":\"1970-01-01T00:00:00.000+0000\"}");
+                assertEquals(string3, "{\n  \"DependedMap\" : {\n    \"bar\" : 321,\n    \"foo\" : 123\n  },\n  \"EpochDate\" : \"1970-01-01T00:00:00.000+0000\"\n}");
+            }
+        } finally {
+            /* Stop the server */
+            starter.stop();
+        }
 
         /* Check the access log after a second... */
         Thread.sleep(1000);
