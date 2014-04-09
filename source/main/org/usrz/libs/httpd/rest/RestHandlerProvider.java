@@ -46,6 +46,7 @@ import org.glassfish.jersey.server.ContainerException;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
 import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
+import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.logging.Log;
 
@@ -113,12 +114,16 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
         /* Setup our JSONP body writer */
         config.register(JSONPBodyWriter.class);
 
+        /* Get our local configurations (if any) */
+        final Configurations configurations = getInstance(injector, Configurations.class, path, true);
+
         /*
          * Create a new ServiceLocator, making sure that any time we get an
          * ObjectMapper our (possibly configured) instance is returned.
          */
         final ServiceLocator locator = Injections.createLocator(new AbstractBinder() {
             @Override protected void configure() {
+                if (configurations != null) this.bind(configurations).to(Configurations.class);
                 this.bind(mapper).to(ObjectMapper.class);
             }});
 

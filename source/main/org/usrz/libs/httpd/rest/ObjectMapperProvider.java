@@ -37,7 +37,7 @@ public class ObjectMapperProvider implements Provider<ObjectMapper> {
     private final Configurations configurations;
 
     public ObjectMapperProvider(Configurations configurations) {
-        this.configurations = notNull(configurations);
+        this.configurations = notNull(configurations, "Null configurations");
     }
 
     @Override

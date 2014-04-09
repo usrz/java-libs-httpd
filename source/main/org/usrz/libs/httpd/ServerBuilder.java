@@ -187,30 +187,47 @@ public class ServerBuilder {
 
     /* ---------------------------------------------------------------------- */
 
-    public void serveRest(String path, Application application) {
+    public RestConfigurator serveApp(String path, Application application) {
         final HttpHandlerPath at = handlerPath(path);
         this.addHandler(at, new RestHandlerProvider(application, at));
+        return new RestConfigurator(at);
     }
 
-    public void serveRest(String path, Consumer<ResourceConfig> consumer) {
+    public RestConfigurator serveApp(String path, Consumer<ResourceConfig> consumer) {
         final HttpHandlerPath at = handlerPath(path);
         this.addHandler(at, new RestHandlerProvider(consumer, at));
+        return new RestConfigurator(at);
     }
 
-    public void serveRest(String path, Configurations json, Application application) {
-        final HttpHandlerPath at = handlerPath(path);
-        final RestHandlerProvider provider = new RestHandlerProvider(application, at);
+    /* ---------------------------------------------------------------------- */
 
-        binder.bind(ObjectMapper.class).annotatedWith(at).toProvider(new ObjectMapperProvider(json));
-        binder.bind(HttpHandler.class).annotatedWith(at).toProvider(provider).asEagerSingleton();
+    public final class RestConfigurator {
+
+        private final HttpHandlerPath at;
+
+        private RestConfigurator(HttpHandlerPath at) {
+            this.at = at;
+        }
+
+        public RestConfigurator withAppConfigurations(Configurations configurations) {
+            binder.bind(Configurations.class)
+                  .annotatedWith(at)
+                  .toInstance(notNull(configurations, "Null application configurations"));
+            return this;
+        }
+
+        public RestConfigurator withObjectMapperConfigurations(Configurations configurations) {
+            binder.bind(ObjectMapper.class)
+                  .annotatedWith(at)
+                  .toProvider(new ObjectMapperProvider(configurations));
+            return this;
+        }
+
+        public RestConfigurator withObjectMapper(ObjectMapper mapper) {
+            binder.bind(ObjectMapper.class)
+                  .annotatedWith(at)
+                  .toInstance(notNull(mapper, "Null object mapper"));
+            return this;
+        }
     }
-
-    public void serveRest(String path, Configurations json, Consumer<ResourceConfig> consumer) {
-        final HttpHandlerPath at = handlerPath(path);
-        final RestHandlerProvider provider = new RestHandlerProvider(consumer, at);
-
-        binder.bind(ObjectMapper.class).annotatedWith(at).toProvider(new ObjectMapperProvider(json));
-        binder.bind(HttpHandler.class).annotatedWith(at).toProvider(provider).asEagerSingleton();
-    }
-
 }

@@ -28,4 +28,8 @@ public class TestApplication extends Application {
         return Collections.singleton(TestResource.class);
     }
 
+    @Override
+    public Set<Object> getSingletons() {
+        return Collections.singleton(Integer.valueOf(123));
+    }
 }

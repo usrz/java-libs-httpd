@@ -26,12 +26,19 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.utils.Check;
 
 @Path("/")
 public class TestResource {
 
+    private final Configurations conf;
     private Map<String, Integer> map;
+
+    @Inject
+    private TestResource(Configurations configurations) {
+        conf = Check.notNull(configurations, "Null configurations");
+    }
 
     @Inject
     public void setDependency(@Named("foobar") Map<String, Integer> map) {
@@ -47,5 +54,6 @@ public class TestResource {
     public class Bean {
         public Date getEpochDate() { return new Date(0); }
         public Map<String, Integer> getDependedMap() { return map; }
+        public String getConfig() { return conf.get("conf"); }
     }
 }

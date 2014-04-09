@@ -88,18 +88,22 @@ public class ServerBuilderTest extends AbstractTest {
             builder.configure(configurations.strip("server"));
 
             /* Serve /rest1 with undescores & timestamps */
-            builder.serveRest("/rest1", (config) -> {
+            builder.serveApp("/rest1", (config) -> {
                 config.setApplicationName("testApp-1");
                 config.register(TestResource.class);
-            });
+            }).withAppConfigurations(new ConfigurationsBuilder().put("conf", "config1").build());
 
             /* Serve /rest2 with camel case and dates */
-            builder.serveRest("/rest2", json2, (config) -> {
+            builder.serveApp("/rest2", (config) -> {
                 config.register(TestResource.class);
-            });
+            }).withAppConfigurations(new ConfigurationsBuilder().put("conf", "config2").build())
+              .withObjectMapperConfigurations(json2);
+
 
             /* Serve /rest3 with camel case dates and indent! */
-            builder.serveRest("/rest3", json3, new TestApplication());
+            builder.serveApp("/rest3", new TestApplication())
+              .withAppConfigurations(new ConfigurationsBuilder().put("conf", "config3").build())
+              .withObjectMapperConfigurations(json3);
 
             /* Remember to inject our dependency for TestResource */
             builder.install((binder) -> binder.bind(new TypeLiteral<Map<String, Integer>>(){})
@@ -129,9 +133,9 @@ public class ServerBuilderTest extends AbstractTest {
                 final String string1 = new String(IO.read(new URL("http://127.0.0.1:" + port1 + "/rest1/")));
                 final String string2 = new String(IO.read(new URL("http://127.0.0.1:" + port2 + "/rest2/")));
                 final String string3 = new String(IO.read(new URL("http://127.0.0.1:" + port3 + "/rest3/")));
-                assertEquals(string1, "{\"depended_map\":{\"bar\":321,\"foo\":123},\"epoch_date\":0}");
-                assertEquals(string2, "{\"dependedMap\":{\"bar\":321,\"foo\":123},\"epochDate\":\"1970-01-01T00:00:00.000+0000\"}");
-                assertEquals(string3, "{\n  \"DependedMap\" : {\n    \"bar\" : 321,\n    \"foo\" : 123\n  },\n  \"EpochDate\" : \"1970-01-01T00:00:00.000+0000\"\n}");
+                assertEquals(string1, "{\"config\":\"config1\",\"depended_map\":{\"bar\":321,\"foo\":123},\"epoch_date\":0}");
+                assertEquals(string2, "{\"config\":\"config2\",\"dependedMap\":{\"bar\":321,\"foo\":123},\"epochDate\":\"1970-01-01T00:00:00.000+0000\"}");
+                assertEquals(string3, "{\n  \"Config\" : \"config3\",\n  \"DependedMap\" : {\n    \"bar\" : 321,\n    \"foo\" : 123\n  },\n  \"EpochDate\" : \"1970-01-01T00:00:00.000+0000\"\n}");
             }
         } finally {
             /* Stop the server */
