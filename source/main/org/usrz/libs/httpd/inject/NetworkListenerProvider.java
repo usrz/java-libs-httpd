@@ -68,8 +68,8 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
         final boolean secure = configurations.get("secure", false);
         if (secure) {
 
-            final boolean wantClientAuth = configurations.get("wantClientAuth", false);
-            final boolean needClientAuth = configurations.get("needClientAuth", false);
+            final boolean wantClientAuth = configurations.get("want_client_auth", false);
+            final boolean needClientAuth = configurations.get("need_client_auth", false);
 
             final SSLContext sslContext = injector.getInstance(SSLContext.class);
             final SSLEngineConfigurator sslConfigurator = new SSLEngineConfigurator(sslContext);
