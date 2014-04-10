@@ -84,6 +84,9 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
         private HttpHandlerPathImpl(String path) {
             path = ("/" + path).replaceAll("/+", "/");
             path += path.endsWith("/") ? "*" : "/*";
+            if ((! "/*".equals(path)) && (path.indexOf('/', 1) != path.lastIndexOf('/'))) {
+                throw new IllegalArgumentException("Invalid path " + path + " (see GRIZZLY-1481)");
+            }
             this.path = path;
         }
 
