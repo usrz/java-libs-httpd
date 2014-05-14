@@ -47,7 +47,7 @@ public interface AsyncRestSupport {
             }
 
             @Override
-            public void accept(T t) {
+            public boolean accept(T t) {
                 try {
                     final String value = mapper.writeValueAsString(t);
                     if (output == null) {
@@ -58,8 +58,10 @@ public interface AsyncRestSupport {
                         output.write(",");
                         output.write(value);
                     }
+                    return true;
                 } catch (Throwable throwable) {
                     error(throwable);
+                    return false;
                 }
             }
 
