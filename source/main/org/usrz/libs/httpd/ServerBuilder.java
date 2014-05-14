@@ -15,11 +15,17 @@
  * ========================================================================== */
 package org.usrz.libs.httpd;
 
+import static org.usrz.libs.httpd.ServerBuilder.RedirectConfigurator.Flags.MATCH_ENTIRE_LINE;
+import static org.usrz.libs.httpd.ServerBuilder.RedirectConfigurator.Flags.PERMANENT_REDIRECT;
+import static org.usrz.libs.httpd.ServerBuilder.RedirectConfigurator.Flags.PRESERVE_QUERY_STRING;
 import static org.usrz.libs.httpd.inject.HttpHandlerProvider.handlerPath;
 import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import javax.inject.Provider;
@@ -39,6 +45,7 @@ import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.httpd.inject.HttpHandlerProvider;
 import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerProvider;
+import org.usrz.libs.httpd.inject.RedirectHandler;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
 import org.usrz.libs.utils.Injections;
@@ -201,6 +208,15 @@ public class ServerBuilder {
 
     /* ---------------------------------------------------------------------- */
 
+    public RedirectConfigurator serveRedirects(String path) {
+        final HttpHandlerPath at = handlerPath(path);
+        final RedirectHandler handler = new RedirectHandler(at);
+        this.addHandler(at, new HttpHandlerProvider(handler, at));
+        return new RedirectConfigurator(handler);
+    }
+
+    /* ---------------------------------------------------------------------- */
+
     public final class RestConfigurator {
 
         private final HttpHandlerPath at;
@@ -227,6 +243,36 @@ public class ServerBuilder {
             binder.bind(ObjectMapper.class)
                   .annotatedWith(at)
                   .toInstance(notNull(mapper, "Null object mapper"));
+            return this;
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+
+    public static final class RedirectConfigurator {
+
+        public enum Flags {
+            PRESERVE_QUERY_STRING,
+            MATCH_ENTIRE_LINE,
+            PERMANENT_REDIRECT
+        }
+
+        private final RedirectHandler handler;
+
+        private RedirectConfigurator(RedirectHandler handler) {
+            this.handler = handler;
+        }
+
+        public RedirectConfigurator redirect(String location, String redirect) {
+            return this.redirect(location, redirect, PRESERVE_QUERY_STRING, MATCH_ENTIRE_LINE);
+        }
+
+        public RedirectConfigurator redirect(String location, String redirect, Flags flag, Flags... flags) {
+            final Set<Flags> set = flag == null ? Collections.emptySet() : EnumSet.of(flag, flags);
+            boolean preserveQueryString = set.contains(PRESERVE_QUERY_STRING);
+            boolean permanentRedirect = set.contains(PERMANENT_REDIRECT);
+            boolean matchEntireLine = set.contains(MATCH_ENTIRE_LINE);
+            handler.addRedirect(location, redirect, matchEntireLine, permanentRedirect, preserveQueryString);
             return this;
         }
     }
