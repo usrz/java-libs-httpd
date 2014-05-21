@@ -16,7 +16,7 @@
 package org.usrz.libs.httpd.rest;
 
 import static org.usrz.libs.utils.Check.notNull;
-import static org.usrz.libs.utils.Injections.getInstance;
+import static org.usrz.libs.utils.inject.Injections.getInstance;
 
 import java.nio.charset.Charset;
 import java.util.Collections;

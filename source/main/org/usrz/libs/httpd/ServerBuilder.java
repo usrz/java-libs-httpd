@@ -48,7 +48,7 @@ import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.inject.RedirectHandler;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
-import org.usrz.libs.utils.Injections;
+import org.usrz.libs.utils.inject.Injections;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Binder;
