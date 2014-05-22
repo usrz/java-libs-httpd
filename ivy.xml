@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="2.0">
 
-  <info organisation="org.usrz.libs" module="httpd" revision="0.0"/>
+  <info organisation="org.usrz.libs" module="httpd" revision="1.0"/>
 
   <configurations>
     <conf name="default" visibility="public"/>
@@ -19,13 +19,13 @@
     <dependency org="org.usrz.libs" name="utils" rev="latest.release" conf="default"/>
     <dependency org="org.usrz.libs" name="logging" rev="latest.release" conf="default"/>
 
-    <dependency org="com.google"    name="guice"            rev="latest.release" conf="default"/>
-    <dependency org="org.glassfish" name="hk2-guice-bridge"    rev="latest.release" conf="default"/>
+    <dependency org="com.google" name="guice" rev="latest.release" conf="default"/>
+    <dependency org="org.glassfish" name="hk2-guice-bridge" rev="latest.release" conf="default"/>
     <dependency org="org.glassfish" name="grizzly-http-server" rev="latest.release" conf="default"/>
     <dependency org="org.glassfish" name="jersey-grizzly" rev="latest.release" conf="default"/>
     <dependency org="com.fasterxml" name="jackson-jaxrs-provider" rev="latest.release" conf="default"/>
 
-    <dependency org="org.mockito"   name="mockito" rev="latest.release" conf="testing-&gt;default"/>
+    <dependency org="org.mockito" name="mockito" rev="latest.release" conf="testing-&gt;default"/>
     <dependency org="org.usrz.libs" name="testing" rev="latest.release" conf="testing-&gt;logging"/>
   </dependencies>
 
