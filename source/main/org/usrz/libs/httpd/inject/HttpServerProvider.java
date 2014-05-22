@@ -25,8 +25,6 @@ import org.usrz.libs.configurations.ConfigurableProvider;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
 
-import com.google.inject.Injector;
-
 @Singleton
 public class HttpServerProvider extends ConfigurableProvider<HttpServer, HttpServerProvider>{
 
@@ -40,7 +38,7 @@ public class HttpServerProvider extends ConfigurableProvider<HttpServer, HttpSer
     }
 
     @Override
-    protected HttpServer get(Injector injector, Configurations configurations) {
+    protected HttpServer get(Configurations configurations) {
         if (server != null) return server;
 
         final HttpServer server = new HttpServer();
