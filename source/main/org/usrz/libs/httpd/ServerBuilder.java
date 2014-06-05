@@ -22,7 +22,6 @@ import static org.usrz.libs.httpd.inject.HttpHandlerProvider.handlerPath;
 import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
@@ -43,12 +42,13 @@ import org.usrz.libs.httpd.inject.DefaultEPGProvider;
 import org.usrz.libs.httpd.inject.FileHandlerProvider;
 import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.httpd.inject.HttpHandlerProvider;
+import org.usrz.libs.httpd.inject.HttpServerConfigurations;
 import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.inject.RedirectHandler;
 import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
-import org.usrz.libs.utils.inject.Injections;
+import org.usrz.libs.utils.inject.ConfiguringBindingBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Binder;
@@ -57,35 +57,29 @@ import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 
-public class ServerBuilder {
-
-    private final Annotation unique = Injections.unique();
-    private final Binder binder;
+public class ServerBuilder extends ConfiguringBindingBuilder<ServerBuilder> {
 
     protected ServerBuilder(Binder binder) {
-        this.binder = notNull(binder, "Null binder");
-        binder.skipSources(this.getClass());
+        super(binder, HttpServerConfigurations.class);
 
         /* Add the HttpServer in the child isolate as it might needs configs */
-        this.binder.bind(HttpServer.class).toProvider(new HttpServerProvider().with(unique));
+        binder.bind(HttpServer.class).toProvider(HttpServerProvider.class);
     }
 
     /* ====================================================================== */
 
     public void install(Consumer<Binder> consumer) {
-        consumer.accept(binder);
+        consumer.accept(binder());
     }
 
     public void install(Module... modules) {
-        for (Module module: modules) binder.install(module);
+        for (Module module: modules) binder().install(module);
     }
 
     /* ---------------------------------------------------------------------- */
 
-    public void configure(Configurations configurations) {
-
-        /* Bind the configurations for the server */
-        binder.bind(Configurations.class).annotatedWith(unique).toInstance(configurations);
+    @Override
+    public ServerBuilder configure(Configurations configurations) {
 
         /* Add our access log if configured */
         final Configurations accessLog = configurations.strip("access_log");
@@ -106,59 +100,62 @@ public class ServerBuilder {
         /* And finally remember our JSON configurations */
         final Configurations json = configurations.strip("json");
         if (! json.isEmpty()) withObjectMapperDefaults(json);
+
+        /* Bind the configurations for the server */
+        return super.configure(configurations);
     }
 
     /* ====================================================================== */
 
     public void withObjectMapperDefaults(Configurations configurations) {
-        binder.bind(ObjectMapper.class).toProvider(new ObjectMapperProvider(configurations));
+        binder().bind(ObjectMapper.class).toProvider(new ObjectMapperProvider(configurations));
     }
 
     /* ====================================================================== */
 
     public void withErrorPageGenerator(ErrorPageGenerator generator) {
-        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(generator));
+        binder().bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(generator));
     }
 
     public void withErrorPageGenerator(Class<? extends ErrorPageGenerator> generator) {
-        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(Key.get(generator)));
+        binder().bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(Key.get(generator)));
     }
 
     public void withErrorPageGenerator(TypeLiteral<? extends ErrorPageGenerator> generator) {
-        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(Key.get(generator)));
+        binder().bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(Key.get(generator)));
     }
 
     public void withErrorPageGenerator(Key<? extends ErrorPageGenerator> generator) {
-        binder.bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(generator));
+        binder().bind(ErrorPageGenerator.class).toProvider(new DefaultEPGProvider(generator));
     }
 
     /* ====================================================================== */
 
     public void addAccessLog(Configurations configurations) {
         final AccessLogProvider provider = new AccessLogProvider(configurations);
-        binder.bind(AccessLogProbe.class)
-              .annotatedWith(Names.named(provider.getName()))
-              .toProvider(provider)
-              .asEagerSingleton();
+        binder().bind(AccessLogProbe.class)
+                .annotatedWith(Names.named(provider.getName()))
+                .toProvider(provider)
+                .asEagerSingleton();
     }
 
     /* ====================================================================== */
 
     public void addListener(Configurations configurations) {
         final NetworkListenerProvider provider = new NetworkListenerProvider(configurations);
-        binder.bind(NetworkListener.class)
-              .annotatedWith(Names.named(provider.getName()))
-              .toProvider(provider)
-              .asEagerSingleton();
+        binder().bind(NetworkListener.class)
+                .annotatedWith(Names.named(provider.getName()))
+                .toProvider(provider)
+                .asEagerSingleton();
     }
 
     /* ====================================================================== */
 
     private void addHandler(HttpHandlerPath path, Provider<HttpHandler> provider) {
-        binder.bind(HttpHandler.class)
-              .annotatedWith(path)
-              .toProvider(provider)
-              .asEagerSingleton();
+        binder().bind(HttpHandler.class)
+                .annotatedWith(path)
+                .toProvider(provider)
+                .asEagerSingleton();
     }
 
     /* ---------------------------------------------------------------------- */
@@ -226,23 +223,23 @@ public class ServerBuilder {
         }
 
         public RestConfigurator withAppConfigurations(Configurations configurations) {
-            binder.bind(Configurations.class)
-                  .annotatedWith(at)
-                  .toInstance(notNull(configurations, "Null application configurations"));
+            binder().bind(Configurations.class)
+                    .annotatedWith(at)
+                    .toInstance(notNull(configurations, "Null application configurations"));
             return this;
         }
 
         public RestConfigurator withObjectMapperConfigurations(Configurations configurations) {
-            binder.bind(ObjectMapper.class)
-                  .annotatedWith(at)
-                  .toProvider(new ObjectMapperProvider(configurations));
+            binder().bind(ObjectMapper.class)
+                    .annotatedWith(at)
+                    .toProvider(new ObjectMapperProvider(configurations));
             return this;
         }
 
         public RestConfigurator withObjectMapper(ObjectMapper mapper) {
-            binder.bind(ObjectMapper.class)
-                  .annotatedWith(at)
-                  .toInstance(notNull(mapper, "Null object mapper"));
+            binder().bind(ObjectMapper.class)
+                    .annotatedWith(at)
+                    .toInstance(notNull(mapper, "Null object mapper"));
             return this;
         }
     }

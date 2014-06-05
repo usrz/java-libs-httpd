@@ -21,12 +21,12 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.usrz.libs.configurations.ConfigurableProvider;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.logging.Log;
+import org.usrz.libs.utils.inject.ConfigurableProvider;
 
 @Singleton
-public class HttpServerProvider extends ConfigurableProvider<HttpServer, HttpServerProvider>{
+public class HttpServerProvider extends ConfigurableProvider<HttpServer> {
 
     private final Log log = new Log();
 
@@ -34,7 +34,7 @@ public class HttpServerProvider extends ConfigurableProvider<HttpServer, HttpSer
     private HttpServer server;
 
     public HttpServerProvider() {
-        /* Nothing to do, really */
+        super(HttpServerConfigurations.class);
     }
 
     @Override
