@@ -78,7 +78,8 @@ public class ServerStarter {
         try {
             Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException exception) {
-            log.warn(exception, "Interrupted while waiting server shutdown");
+            log.warn("Interrupted while waiting server shutdown");
+            if (server != null) stop();
         }
     }
 
