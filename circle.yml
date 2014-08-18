@@ -23,4 +23,4 @@ deployment:
           -Dtest.skip=true
           -Divy.useCacheOnly=true
           -Divy.buildNumber="${CIRCLE_BUILD_NUM}"
-      - (cd target/publications && scp -r . circleci@dev.usrz.com:releases)
+      - (cd target/publications && scp -r . circleci@gw.usrz.com:releases)
