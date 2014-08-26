@@ -46,8 +46,8 @@ import org.usrz.libs.httpd.inject.HttpServerConfigurations;
 import org.usrz.libs.httpd.inject.HttpServerProvider;
 import org.usrz.libs.httpd.inject.NetworkListenerProvider;
 import org.usrz.libs.httpd.inject.RedirectHandler;
-import org.usrz.libs.httpd.rest.ObjectMapperProvider;
 import org.usrz.libs.httpd.rest.RestHandlerProvider;
+import org.usrz.libs.httpd.rest.RestObjectMapperProvider;
 import org.usrz.libs.utils.inject.ConfiguringBindingBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -108,7 +108,7 @@ public class ServerBuilder extends ConfiguringBindingBuilder<ServerBuilder> {
     /* ====================================================================== */
 
     public void withObjectMapperDefaults(Configurations configurations) {
-        binder().bind(ObjectMapper.class).toProvider(new ObjectMapperProvider(configurations));
+        binder().bind(ObjectMapper.class).toProvider(new RestObjectMapperProvider(configurations));
     }
 
     /* ====================================================================== */
@@ -232,7 +232,7 @@ public class ServerBuilder extends ConfiguringBindingBuilder<ServerBuilder> {
         public RestConfigurator withObjectMapperConfigurations(Configurations configurations) {
             binder().bind(ObjectMapper.class)
                     .annotatedWith(at)
-                    .toProvider(new ObjectMapperProvider(configurations));
+                    .toProvider(new RestObjectMapperProvider(configurations));
             return this;
         }
 
