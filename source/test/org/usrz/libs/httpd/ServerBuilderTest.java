@@ -52,7 +52,8 @@ public class ServerBuilderTest extends AbstractTest {
     throws Exception {
         final File accessLog = IO.makeTempFile();
         final File documentRoot = IO.makeTempDir();
-        final File keystoreFile = IO.copyTempFile("selfsigned.pem");
+        final File keystoreFile1 = IO.copyTempFile("certificate1.pem"); // password "qwer"
+        final File keystoreFile2 = IO.copyTempFile("certificate2.pem"); // password "asdf"
         IO.copy("index.html", new File(documentRoot, "index.html"));
 
         final int port1 = NET.serverPort();
@@ -68,13 +69,15 @@ public class ServerBuilderTest extends AbstractTest {
 
             .put("server.listeners.0.host", "127.0.0.1")
             .put("server.listeners.0.port", port2)
-            .put("server.listeners.0.secure", false)
+            .put("server.listeners.0.secure", true)
+            .put("server.listeners.0.keystore.file", keystoreFile1)
+            .put("server.listeners.0.keystore.password", "qwer")
 
             .put("server.listeners.1.host", "127.0.0.1")
             .put("server.listeners.1.port", port3)
             .put("server.listeners.1.secure", true)
-            .put("server.listeners.1.keystore_file", keystoreFile)
-            .put("server.listeners.1.keystore_password", "asdf")
+            .put("server.listeners.1.keystore.file", keystoreFile2)
+            .put("server.listeners.1.keystore.password", "asdf")
 
             .put("server.access_log.file", accessLog)
             .put("server.access_log.synchronous", true) // for tests, easy
@@ -103,6 +106,7 @@ public class ServerBuilderTest extends AbstractTest {
         dependency.put("bar", 321);
 
         final ServerStarter starter = new ServerStarter().start((builder) -> {
+
             /* Configure with defaults above */
             builder.configure(configurations.strip("server"));
 
@@ -125,14 +129,15 @@ public class ServerBuilderTest extends AbstractTest {
               .withObjectMapperConfigurations(json3);
 
             /* Remember to inject our dependency for TestResource */
-            builder.install((binder) -> binder.bind(new TypeLiteral<Map<String, Integer>>(){})
-                                              .annotatedWith(Names.named("foobar"))
-                                              .toInstance(dependency));
+            builder.install((binder) ->
+                binder.bind(new TypeLiteral<Map<String, Integer>>(){})
+                      .annotatedWith(Names.named("foobar"))
+                      .toInstance(dependency));
         });
 
         /* Hairy code, trust ourselves for SSL certificate validation */
         final KeyStore keyStore = KeyStore.getInstance("PEM");
-        keyStore.load(IO.resource("selfsigned.pem"), "asdf".toCharArray());
+        keyStore.load(IO.resource("certificate1.pem"), "qwer".toCharArray());
         final Certificate certificate = keyStore.getCertificate("F7A4FD46266A272B145B4F09F6D14CC7A458268B");
         assertNotNull(certificate, "Unable to find our own certificate???");
 
@@ -194,7 +199,7 @@ public class ServerBuilderTest extends AbstractTest {
             log.info("Executing 300 static requests");
             for (int x = 0; x < 100; x ++) {
                 byte[] index1 = IO.read(new URL("http://127.0.0.1:" + port1 + "/index.html"));
-                byte[] index2 = IO.read(new URL("http://127.0.0.1:" + port2 + "/index.html"));
+                byte[] index2 = IO.read(new URL("https://127.0.0.1:" + port2 + "/index.html"));
                 byte[] index3 = IO.read(new URL("https://127.0.0.1:" + port3 + "/index.html"));
                 assertEquals(index1, index, "Wrong data received from port " + port1);
                 assertEquals(index2, index, "Wrong data received from port " + port2);
@@ -205,7 +210,7 @@ public class ServerBuilderTest extends AbstractTest {
             log.info("Executing 300 Jersey requests");
             for (int x = 0; x < 100; x ++) {
                 final String string1 = new String(IO.read(new URL("http://127.0.0.1:" + port1 + "/rest1/")));
-                final String string2 = new String(IO.read(new URL("http://127.0.0.1:" + port2 + "/rest2/")));
+                final String string2 = new String(IO.read(new URL("https://127.0.0.1:" + port2 + "/rest2/")));
                 final String string3 = new String(IO.read(new URL("https://127.0.0.1:" + port3 + "/rest3/")));
                 assertEquals(string1, "{\"config\":\"config1\",\"depended_map\":{\"bar\":321,\"foo\":123},\"epoch_date\":0}");
                 assertEquals(string2, "{\"config\":\"config2\",\"dependedMap\":{\"bar\":321,\"foo\":123},\"epochDate\":\"1970-01-01T00:00:00.000+0000\"}");
