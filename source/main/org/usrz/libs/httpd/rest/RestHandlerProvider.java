@@ -111,9 +111,6 @@ public class RestHandlerProvider implements Provider<HttpHandler> {
                     new Annotations[] { Annotations.JACKSON, Annotations.JAXB }),
                     Collections.unmodifiableMap(contractPriorities));
 
-        /* Setup our JSONP body writer */
-        config.register(JSONPBodyWriter.class);
-
         /* Get our local configurations (if any) */
         final Configurations configurations = getInstance(injector, Configurations.class, path, true);
 
