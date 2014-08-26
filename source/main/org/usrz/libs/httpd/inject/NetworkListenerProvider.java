@@ -19,13 +19,9 @@ import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_PORT;
 import static org.usrz.libs.utils.Check.notNull;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.Security;
-import java.util.Enumeration;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -33,26 +29,19 @@ import javax.inject.Singleton;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.usrz.libs.configurations.Configurations;
-import org.usrz.libs.crypto.pem.PEMProvider;
+import org.usrz.libs.crypto.utils.KeyStoreBuilder;
 import org.usrz.libs.logging.Log;
 
 import com.google.inject.Injector;
-import com.google.inject.Key;
 import com.google.inject.ProvisionException;
 
 @Singleton
 public class NetworkListenerProvider implements Provider<NetworkListener> {
-
-    private static final Key<CallbackHandler> CBH_KEY = Key.get(CallbackHandler.class);
 
     private final Log log = new Log();
 
@@ -91,65 +80,39 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
             final boolean needClientAuth = configurations.get("need_client_auth", false);
 
             final SSLContext sslContext;
-            final File keyStoreFile = configurations.getFile("keystore_file");
-            if (keyStoreFile == null) {
+            final Configurations keyStoreConfig = configurations.strip("keystore");
 
-                /* If we don't have a keystore file, we MUST have a SSL context */
+            if (keyStoreConfig.isEmpty()) {
+
+                /* If we don't have a keystore configuration, we MUST have a SSL context */
                 sslContext = injector.getInstance(SSLContext.class);
 
             } else try {
 
-                /* What kind of keystore are we using here? Add PEM if needed! */
-                final String keyStoreType = configurations.getString("keystore_type", "PEM");
-                if ("PEM".equalsIgnoreCase(keyStoreType)) Security.addProvider(new PEMProvider());
+                /* Start building a KeyStore */
+                final KeyStore keyStore = new KeyStoreBuilder().configuration(keyStoreConfig).build();
 
-                /* Let's start trying to get a password here */
-                final String keyStorePassword = configurations.getString("keystore_password");
-                final char keyStoreSecret[];
+                /* We can't use a callback handler (for key store or key passwords), as KeyManagerFactory wants a password */
+                final String password = keyStoreConfig.getString("key_password", keyStoreConfig.getString("password", null));
 
-                /* How to decrypt our key store */
-                if (keyStorePassword != null) {
-
-                    /* If we have a password, use it as our secret */
-                    keyStoreSecret = keyStorePassword.toCharArray();
-
-                } else if (injector.getAllBindings().containsKey(CBH_KEY)) {
-
-                    /* If we can find a call back handler, ask for a password */
-                    final CallbackHandler callbackHandler = injector.getInstance(CBH_KEY);
-                    final PasswordCallback callback = new PasswordCallback("Enter password for key store " + keyStoreFile, false);
-                    callbackHandler.handle(new Callback[] { callback });
-                    keyStoreSecret = callback.getPassword();
-                    callback.clearPassword();
-
-                } else {
-
-                    /* There is no password, and no call back handler... Null it */
-                    keyStoreSecret = null;
-
-                }
-
-                final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-                keyStore.load(new FileInputStream(keyStoreFile), keyStoreSecret);
-
-                final Enumeration<String> e = keyStore.aliases();
-                while (e.hasMoreElements()) System.err.println("Found " + e.nextElement());
-
+                /* Build up our key manager factory */
                 final KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                keyFactory.init(keyStore, keyStoreSecret);
+                keyFactory.init(keyStore, password == null ? null : password.toCharArray());
 
+                /* Build up our trust manager factory */
                 final TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustFactory.init(keyStore);
 
+                /* Initialize the SSL context */
                 sslContext = SSLContext.getInstance("TLS");
-                sslContext.init(keyFactory.getKeyManagers(), null, null); //trustFactory.getTrustManagers(), null);
+                sslContext.init(keyFactory.getKeyManagers(), null, null);
 
-            } catch (UnsupportedCallbackException exception) {
-                throw new ProvisionException("Callback unable to get password for keystore " + keyStoreFile, exception);
             } catch (GeneralSecurityException exception) {
-                throw new ProvisionException("Security error reading from keystore " + keyStoreFile, exception);
+                throw new ProvisionException("Security error reading from keystore " + keyStoreConfig.get("file", "(no file specified)"), exception);
             } catch (IOException exception) {
-                throw new ProvisionException("I/O error reading from keystore " + keyStoreFile, exception);
+                throw new ProvisionException("I/O error reading from keystore " + keyStoreConfig.get("file", "(no file specified)"), exception);
+            } catch (Exception exception) {
+                throw new ProvisionException("Error provisioning keystore " + keyStoreConfig.get("file", "(no file specified)"), exception);
             }
 
             final SSLEngineConfigurator sslConfigurator = new SSLEngineConfigurator(sslContext);
