@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.inject;
+package org.usrz.libs.httpd.rest.handlers;
 
 import static org.usrz.libs.utils.Check.notNull;
 
@@ -26,6 +26,7 @@ import javax.inject.Provider;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.logging.Log;
 
 public class FileHandlerProvider implements Provider<HttpHandler> {

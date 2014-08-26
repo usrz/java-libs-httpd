@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.inject;
+package org.usrz.libs.httpd.rest.handlers;
 
 import static org.glassfish.grizzly.http.util.HttpStatus.MOVED_PERMANENTLY_301;
 import static org.glassfish.grizzly.http.util.HttpStatus.NOT_FOUND_404;
@@ -30,6 +30,7 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.usrz.libs.httpd.inject.HttpHandlerPath;
 import org.usrz.libs.logging.Log;
 
 public class RedirectHandler extends HttpHandler {
