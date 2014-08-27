@@ -90,7 +90,7 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
             } else try {
 
                 /* Start building a KeyStore */
-                final KeyStore keyStore = new KeyStoreBuilder().configuration(keyStoreConfig).build();
+                final KeyStore keyStore = new KeyStoreBuilder().withConfiguration(keyStoreConfig).build();
 
                 /* We can't use a callback handler (for key store or key passwords), as KeyManagerFactory wants a password */
                 final String password = keyStoreConfig.getString("key_password", keyStoreConfig.getString("password", null));
