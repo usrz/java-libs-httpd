@@ -15,17 +15,18 @@
  * ========================================================================== */
 package org.usrz.libs.httpd;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.ws.rs.core.Application;
-
 
 public class TestApplication extends Application {
 
     @Override
     public Set<Class<?>> getClasses() {
-        return Collections.singleton(TestResource.class);
+        return new HashSet<Class<?>>(Arrays.asList(TestResource.class, TestProvider.class));
     }
 
     @Override

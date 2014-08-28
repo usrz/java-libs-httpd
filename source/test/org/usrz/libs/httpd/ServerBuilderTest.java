@@ -114,11 +114,13 @@ public class ServerBuilderTest extends AbstractTest {
             builder.serveApp("/rest1", (config) -> {
                 config.setApplicationName("testApp-1");
                 config.register(TestResource.class);
+                config.register(TestProvider.class);
             }).withAppConfigurations(new ConfigurationsBuilder().put("conf", "config1").build());
 
             /* Serve /rest2 with camel case and dates */
             builder.serveApp("/rest2", (config) -> {
                 config.register(TestResource.class);
+                config.register(TestProvider.class);
             }).withAppConfigurations(new ConfigurationsBuilder().put("conf", "config2").build())
               .withObjectMapperConfigurations(json2);
 
