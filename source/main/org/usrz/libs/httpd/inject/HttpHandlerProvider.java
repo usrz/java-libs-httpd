@@ -103,6 +103,8 @@ public class HttpHandlerProvider implements Provider<HttpHandler> {
 
         @Override
         public boolean equals(Object object) {
+            if (object == this) return true;
+            if (object == null) return false;
             try {
                 return path.equals(((HttpHandlerPath)object).value());
             } catch (ClassCastException exception) {

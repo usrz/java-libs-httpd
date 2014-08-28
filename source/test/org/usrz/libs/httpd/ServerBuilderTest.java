@@ -124,7 +124,6 @@ public class ServerBuilderTest extends AbstractTest {
             }).withAppConfigurations(new ConfigurationsBuilder().put("conf", "config2").build())
               .withObjectMapperConfigurations(json2);
 
-
             /* Serve /rest3 with camel case dates and indent! */
             builder.serveApp("/rest3", new TestApplication())
               .withAppConfigurations(new ConfigurationsBuilder().put("conf", "config3").build())

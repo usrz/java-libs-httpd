@@ -20,10 +20,9 @@ import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Map;
+import java.util.HashMap;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -31,17 +30,23 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
 
+import org.usrz.libs.configurations.Configurations;
+import org.usrz.libs.httpd.inject.HttpServerConfigurations;
 import org.usrz.libs.logging.Log;
 
 @Provider
 @Singleton
+@HttpServerConfigurations
 public class TestProvider implements MessageBodyWriter<Method> {
 
     private final Log log = new Log();
 
     @Inject
-    private TestProvider(@Named("foobar") Map<String, Integer> map) {
-        log.info("Initializing with %s", map);
+    private TestProvider(Configurations configurations1,
+                         @HttpServerConfigurations Configurations configurations2) {
+        // TODO: fix up, check for "app" and annotated configurations parameters...
+        log.info("Initializing 1 with %s", new HashMap<String, Object>(configurations1));
+        log.info("Initializing 2 with %s", new HashMap<String, Object>(configurations2));
     }
 
     @Override
@@ -62,5 +67,4 @@ public class TestProvider implements MessageBodyWriter<Method> {
             WebApplicationException {
         throw new UnsupportedOperationException("Foo!");
     }
-
 }
