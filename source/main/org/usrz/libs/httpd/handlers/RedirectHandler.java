@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * ========================================================================== */
-package org.usrz.libs.httpd.rest.handlers;
+package org.usrz.libs.httpd.handlers;
 
 import static org.glassfish.grizzly.http.util.HttpStatus.MOVED_PERMANENTLY_301;
 import static org.glassfish.grizzly.http.util.HttpStatus.NOT_FOUND_404;
