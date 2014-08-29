@@ -22,7 +22,6 @@ import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -41,11 +40,17 @@ import org.usrz.libs.configurations.ConfigurationsBuilder;
 import org.usrz.libs.testing.AbstractTest;
 import org.usrz.libs.testing.IO;
 import org.usrz.libs.testing.NET;
+import org.usrz.libs.utils.MapBuilder;
 
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 
 public class ServerBuilderTest extends AbstractTest {
+
+    final static Map<String, Integer> DEPENDENCY = new MapBuilder<String, Integer>()
+                                                    .put("foo", 123)
+                                                    .put("bar", 321)
+                                                    .map();
 
     @Test
     public void testServerBuilder()
@@ -101,10 +106,6 @@ public class ServerBuilderTest extends AbstractTest {
             .put("order_keys", true)
             .build();
 
-        final Map<String, Integer> dependency = new HashMap<String, Integer>();
-        dependency.put("foo", 123);
-        dependency.put("bar", 321);
-
         final ServerStarter starter = new ServerStarter().start((builder) -> {
 
             /* Configure with defaults above */
@@ -133,7 +134,7 @@ public class ServerBuilderTest extends AbstractTest {
             builder.install((binder) ->
                 binder.bind(new TypeLiteral<Map<String, Integer>>(){})
                       .annotatedWith(Names.named("foobar"))
-                      .toInstance(dependency));
+                      .toInstance(DEPENDENCY));
         });
 
         /* Hairy code, trust ourselves for SSL certificate validation */

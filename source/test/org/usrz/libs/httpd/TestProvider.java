@@ -20,9 +20,10 @@ import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.HashMap;
+import java.util.Map;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -30,23 +31,23 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
 
+import org.testng.Assert;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.httpd.inject.HttpServerConfigurations;
-import org.usrz.libs.logging.Log;
 
 @Provider
 @Singleton
 @HttpServerConfigurations
 public class TestProvider implements MessageBodyWriter<Method> {
 
-    private final Log log = new Log();
-
     @Inject
-    private TestProvider(Configurations configurations1,
-                         @HttpServerConfigurations Configurations configurations2) {
-        // TODO: fix up, check for "app" and annotated configurations parameters...
-        log.info("Initializing 1 with %s", new HashMap<String, Object>(configurations1));
-        log.info("Initializing 2 with %s", new HashMap<String, Object>(configurations2));
+    private TestProvider(@HttpServerConfigurations Configurations configurations1,
+                         @Named("foobar") Map<String, Integer> map,
+                         Configurations configurations2) {
+        /* This will be constructed up at initialization of the app, before any request is done */
+        Assert.assertFalse(configurations1.extract("listeners").isEmpty()); /* HTTP configs have listeners */
+        Assert.assertTrue(configurations2.containsKey("conf")); /* All applications have a "conf" key */
+        Assert.assertSame(map, ServerBuilderTest.DEPENDENCY); /* Check we got the *SAME* map */
     }
 
     @Override
