@@ -22,7 +22,6 @@
 
     <dependency org="com.google" name="guice" rev="latest.release" conf="default"/>
 
-    <dependency org="org.glassfish" name="hk2-guice-bridge" rev="latest.release" conf="default"/>
     <dependency org="org.glassfish" name="grizzly-http-server" rev="latest.release" conf="default"/>
     <dependency org="org.glassfish" name="jersey-grizzly" rev="latest.release" conf="default"/>
 
