@@ -15,6 +15,7 @@
  * ========================================================================== */
 package org.usrz.libs.httpd;
 
+import static com.google.inject.Stage.DEVELOPMENT;
 import static org.usrz.libs.utils.Check.notNull;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ import org.usrz.libs.logging.Logging;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Stage;
 
 public class ServerStarter {
 
@@ -39,10 +41,14 @@ public class ServerStarter {
     }
 
     public final ServerStarter start(Consumer<ServerBuilder> consumer) {
+        return this.start(DEVELOPMENT, consumer);
+    }
+
+    public final ServerStarter start(Stage stage, Consumer<ServerBuilder> consumer) {
         notNull(consumer, "Null ServerBuilder consumer");
 
         /* Create a new injector and set up the module */
-        final Injector injector = Guice.createInjector((binder) -> consumer.accept(new ServerBuilder(binder)));
+        final Injector injector = Guice.createInjector(stage, (binder) -> consumer.accept(new ServerBuilder(binder)));
 
         /* Get a hold on our HttpServer instance */
         final HttpServer server = injector.getInstance(HttpServer.class);
