@@ -1,6 +1,8 @@
 machine:
   java:
     version: oraclejdk8
+  node:
+    version: 0.10.28
 checkout:
   post:
     - git submodule sync
@@ -17,10 +19,7 @@ deployment:
   release:
     branch: release
     commands:
-      - git config user.email "builds@circleci.com"
-      - git config user.name "CircleCI Buil Agent"
       - ant publish
           -Dtest.skip=true
           -Divy.useCacheOnly=true
           -Divy.buildNumber="${CIRCLE_BUILD_NUM}"
-      - (cd target/publications && scp -r . circleci@gw.usrz.com:releases)
