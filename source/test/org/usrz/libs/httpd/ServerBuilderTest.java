@@ -37,6 +37,7 @@ import javax.net.ssl.X509TrustManager;
 import org.testng.annotations.Test;
 import org.usrz.libs.configurations.Configurations;
 import org.usrz.libs.configurations.ConfigurationsBuilder;
+import org.usrz.libs.crypto.vault.SecureConfigurations;
 import org.usrz.libs.testing.AbstractTest;
 import org.usrz.libs.testing.IO;
 import org.usrz.libs.testing.NET;
@@ -65,33 +66,34 @@ public class ServerBuilderTest extends AbstractTest {
         final int port2 = NET.serverPort();
         final int port3 = NET.serverPort();
 
-        final Configurations configurations = new ConfigurationsBuilder()
-            .put("server.name", "myServer123")
+        final SecureConfigurations configurations = new SecureConfigurations(
+            new ConfigurationsBuilder()
+                .put("server.name", "myServer123")
 
-            .put("server.listener.host", "127.0.0.1")
-            .put("server.listener.port", port1)
-            .put("server.listener.secure", false)
+                .put("server.listener.host", "127.0.0.1")
+                .put("server.listener.port", port1)
+                .put("server.listener.secure", false)
 
-            .put("server.listeners.0.host", "127.0.0.1")
-            .put("server.listeners.0.port", port2)
-            .put("server.listeners.0.secure", true)
-            .put("server.listeners.0.keystore.file", keystoreFile1)
-            .put("server.listeners.0.keystore.password", "qwer")
+                .put("server.listeners.0.host", "127.0.0.1")
+                .put("server.listeners.0.port", port2)
+                .put("server.listeners.0.secure", true)
+                .put("server.listeners.0.keystore.file", keystoreFile1)
+                .put("server.listeners.0.keystore.password", "qwer")
 
-            .put("server.listeners.1.host", "127.0.0.1")
-            .put("server.listeners.1.port", port3)
-            .put("server.listeners.1.secure", true)
-            .put("server.listeners.1.keystore.file", keystoreFile2)
-            .put("server.listeners.1.keystore.password", "asdf")
+                .put("server.listeners.1.host", "127.0.0.1")
+                .put("server.listeners.1.port", port3)
+                .put("server.listeners.1.secure", true)
+                .put("server.listeners.1.keystore.file", keystoreFile2)
+                .put("server.listeners.1.keystore.password", "asdf")
 
-            .put("server.access_log.file", accessLog)
-            .put("server.access_log.synchronous", true) // for tests, easy
-            .put("server.access_log.format", "%A:%p %r") // only GET /foo HTTP/1.1
-            .put("server.document_root", documentRoot)
-            .put("server.json.use_timestamps", true)
-            .put("server.json.field_naming", "underscores")
-            .put("server.json.order_keys", true) // sanity for tests belok
-            .build();
+                .put("server.access_log.file", accessLog)
+                .put("server.access_log.synchronous", true) // for tests, easy
+                .put("server.access_log.format", "%A:%p %r") // only GET /foo HTTP/1.1
+                .put("server.document_root", documentRoot)
+                .put("server.json.use_timestamps", true)
+                .put("server.json.field_naming", "underscores")
+                .put("server.json.order_keys", true) // sanity for tests belok
+                .build());
 
         final Configurations json2 = new ConfigurationsBuilder()
             .put("use_timestamps", false)
@@ -136,6 +138,9 @@ public class ServerBuilderTest extends AbstractTest {
                       .annotatedWith(Names.named("foobar"))
                       .toInstance(DEPENDENCY));
         });
+
+        /* After starting, close up all our configurations */
+        configurations.close();
 
         /* Hairy code, trust ourselves for SSL certificate validation */
         final KeyStore keyStore = KeyStore.getInstance("PEM");

@@ -34,6 +34,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.usrz.libs.configurations.Configurations;
+import org.usrz.libs.configurations.Password;
 import org.usrz.libs.crypto.utils.KeyStoreBuilder;
 import org.usrz.libs.logging.Log;
 
@@ -93,11 +94,17 @@ public class NetworkListenerProvider implements Provider<NetworkListener> {
                 final KeyStore keyStore = new KeyStoreBuilder().withConfiguration(keyStoreConfig).build();
 
                 /* We can't use a callback handler (for key store or key passwords), as KeyManagerFactory wants a password */
-                final String password = keyStoreConfig.getString("key_password", keyStoreConfig.getString("password", null));
+                final Password keyPasswd = keyStoreConfig.getPassword("key_password");
+                final Password sharedPwd = keyStoreConfig.getPassword("password");
+                final Password password = keyPasswd != null ? keyPasswd :
+                                          sharedPwd != null ? sharedPwd :
+                                          null;
 
-                /* Build up our key manager factory */
+                /* Build up our key manager factory and close up the password */
                 final KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                keyFactory.init(keyStore, password == null ? null : password.toCharArray());
+                keyFactory.init(keyStore, password == null ? null : password.get());
+                if (keyPasswd != null) keyPasswd.close();
+                if (sharedPwd != null) sharedPwd.close();
 
                 /* Build up our trust manager factory */
                 final TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
